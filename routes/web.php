@@ -28,6 +28,7 @@ $app->router()->get('/', [HomeController::class, 'index'], [Authenticate::class]
 $app->router()->get('/users', [UserController::class, 'index'], [Authenticate::class]);
 $app->router()->post('/users', [UserController::class, 'store'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->post('/users/toggle', [UserController::class, 'toggle'], [Authenticate::class, VerifyCsrf::class]);
+$app->router()->post('/users/{id}', [UserController::class, 'update'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->get('/clients', [ClientController::class, 'index'], [Authenticate::class]);
 $app->router()->get('/clients/{id}', [ClientController::class, 'show'], [Authenticate::class]);
 $app->router()->get('/api/clients', [ClientController::class, 'data'], [Authenticate::class]);

@@ -99,6 +99,30 @@
         $('#usersTable').DataTable({ pageLength: 10, order: [[4, 'desc']], language: { search: 'Rechercher :', lengthMenu: 'Afficher _MENU_', info: '_START_ à _END_ sur _TOTAL_', paginate: { previous: 'Précédent', next: 'Suivant' }, zeroRecords: 'Aucun utilisateur trouvé' } });
     }
 
-    $('#openUserModal').on('click', function () { $('#userModal').prop('hidden', false); });
-    $('.modal-close').on('click', function () { $('#userModal').prop('hidden', true); });
+    $('#openUserModal').on('click', function () {
+        var form = $('#userForm'), baseUrl = (window.MSS_DMS && window.MSS_DMS.baseUrl) || '';
+        if (form.length) {
+            form[0].reset(); form.attr('action', baseUrl + '/users');
+            form.find('[name="password"]').prop('required', true);
+            $('#userModalTitle').text('Nouvel utilisateur');
+            $('#userModalDescription').text('Créez un compte et attribuez son rôle initial.');
+            $('#userPasswordLabel').text('Mot de passe initial'); $('#userPasswordHelp').prop('hidden', true);
+            $('#userSubmitLabel').text('Créer le compte');
+        }
+        $('#userModal').prop('hidden', false).attr('aria-hidden', 'false');
+    });
+    $(document).on('click', '.edit-user-button', function () {
+        var button = $(this), form = $('#userForm'), baseUrl = (window.MSS_DMS && window.MSS_DMS.baseUrl) || '';
+        form[0].reset(); form.attr('action', baseUrl + '/users/' + button.data('user-id'));
+        form.find('[name="name"]').val(button.attr('data-user-name'));
+        form.find('[name="email"]').val(button.attr('data-user-email'));
+        form.find('[name="role_id"]').val(String(button.data('user-role')));
+        form.find('[name="password"]').val('').prop('required', false);
+        $('#userModalTitle').text('Modifier l’utilisateur');
+        $('#userModalDescription').text('Mettez à jour les informations, le rôle ou les accès du compte.');
+        $('#userPasswordLabel').text('Nouveau mot de passe'); $('#userPasswordHelp').prop('hidden', false);
+        $('#userSubmitLabel').text('Enregistrer les modifications');
+        $('#userModal').prop('hidden', false).attr('aria-hidden', 'false');
+    });
+    $('.modal-close').on('click', function () { $('#userModal').prop('hidden', true).attr('aria-hidden', 'true'); });
 })(jQuery);
