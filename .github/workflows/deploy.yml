@@ -1,0 +1,33 @@
+name: 🚀 Déploiement automatique MSS-DMS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: 🔗 Se connecter au VPS et déployer
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /var/www/vhosts/belej-erp.com/mss.belej-erp.com/
+            git pull origin main
+
+            # (Optionnel) Commandes post-déploiement
+            # php migrate.php
+            # composer install --no-dev
+
+            # Correction des permissions
+            sudo chown -R www-data:www-data .
+            sudo find . -type d -exec chmod 755 {} \;
+            sudo find . -type f -exec chmod 644 {} \;
+
+            echo "✅ Déploiement de MSS-DMS terminé avec succès !"

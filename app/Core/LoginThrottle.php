@@ -6,7 +6,6 @@ namespace App\Core;
 
 final class LoginThrottle
 {
-    private const WINDOW_MINUTES = 15;
     private const ACCOUNT_IP_LIMIT = 5;
     private const IP_LIMIT = 20;
 
