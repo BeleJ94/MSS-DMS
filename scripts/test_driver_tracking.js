@@ -73,7 +73,9 @@ vm.runInNewContext(fs.readFileSync(__dirname + '/../public/assets/js/driver-trac
     expect(await context.MSSGps.permissionState() === 'granted', 'un succès GPS corrige un état Permissions API obsolète');
     await context.MSSGps.begin(42, position);
     expect(context.MSSGps.isActive(), 'le tracking démarre pour la mission active');
+    context.navigator.onLine = false;
     expect(await context.MSSGps.flush(), 'la synchronisation fonctionne sans IndexedDB');
+    expect(sentPayload !== null, 'un faux état navigateur hors ligne ne bloque pas l’envoi');
     expect(sentPayload && sentPayload.url === '/mss/api/driver-app/missions/42/positions', 'la bonne API de mission est appelée');
     expect(sentPayload.body.positions.length === 1 && sentPayload.body._token === 'test-token', 'la position et le jeton CSRF sont envoyés');
     context.MSSGps.stop();
