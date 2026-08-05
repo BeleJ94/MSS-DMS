@@ -29,7 +29,7 @@ final class DriverAppController extends Controller
     }
     public function action(Request $request): Response
     {
-        if(!Auth::can('driver_app.access')){return $this->json(['success'=>false,'message'=>'Accès refusé.'],403);}$action=trim((string)$request->input('action',''));try{$message=DriverMission::perform((int)$request->param('id'),$action,(string)$request->input('description',''));return $this->json(['success'=>true,'message'=>$message]);}catch(Throwable $e){return $this->json(['success'=>false,'message'=>$e instanceof RuntimeException?$e->getMessage():'Action impossible.'],422);}
+        if(!Auth::can('driver_app.access')){return $this->json(['success'=>false,'message'=>'Accès refusé.'],403);}$action=trim((string)$request->input('action',''));try{$missionId=(int)$request->param('id');$message=DriverMission::perform($missionId,$action,(string)$request->input('description',''));$gps=null;if($action==='start'){$position=$request->input('initial_position');if(!is_array($position)){throw new RuntimeException('La première position GPS est obligatoire pour démarrer la mission.');}$gps=GpsTracking::recordBatch($missionId,[$position],'pwa');$message='Mission démarrée · position GPS enregistrée sur le serveur.';}return $this->json(['success'=>true,'message'=>$message,'gps'=>$gps]);}catch(Throwable $e){@error_log(sprintf("[%s] Driver action/GPS failed for mission %d: %s\n",date('c'),(int)$request->param('id'),$e->getMessage()),3,BASE_PATH.'/storage/logs/app.log');return $this->json(['success'=>false,'message'=>$e instanceof RuntimeException?$e->getMessage():'Action ou enregistrement GPS impossible.'],422);}
     }
     public function positions(Request $request): Response
     {

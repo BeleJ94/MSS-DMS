@@ -33,6 +33,7 @@ final class DriverMission
         if($action==='start'){
             if($mission['status']==='Chargée'){Delivery::transition($id,'Partie','Mission démarrée par le chauffeur');Delivery::transition($id,'En transit','Chauffeur en route');return 'Mission démarrée.';}
             if($mission['status']==='Partie'){Delivery::transition($id,'En transit','Chauffeur en route');return 'Mission démarrée.';}
+            if($mission['status']==='En transit'){return 'Mission déjà active.';}
             throw new RuntimeException('La mission doit être chargée avant le départ.');
         }
         if($action==='arrive'){if($mission['status']!=='En transit'){throw new RuntimeException('Cette mission ne peut pas encore être marquée arrivée.');}Delivery::transition($id,'Arrivée','Arrivée confirmée par le chauffeur');return 'Arrivée confirmée.';}
