@@ -68,6 +68,7 @@ try {
     ];
     $first = GpsTracking::recordBatch($deliveryId, [$position]);
     expectGps($first['accepted'] === 1, 'la première position est acceptée');
+    expectGps($first['total_positions'] === 1, 'le serveur confirme le total après la première position');
     $duplicate = GpsTracking::recordBatch($deliveryId, [$position]);
     expectGps($duplicate['duplicates'] === 1, 'une retransmission hors ligne est dédupliquée');
     $stored = $pdo->query('SELECT * FROM delivery_gps_positions WHERE delivery_id=' . $deliveryId)->fetch();
@@ -89,7 +90,8 @@ try {
         'longitude' => 27.4862,
         'captured_at' => gmdate('c', time() + 60),
     ]);
-    GpsTracking::recordBatch($deliveryId, [$secondPosition]);
+    $second = GpsTracking::recordBatch($deliveryId, [$secondPosition]);
+    expectGps($second['total_positions'] === 2, 'le serveur confirme plusieurs positions pour la mission');
     $route = DeliveryRouteHistory::forDelivery($deliveryId);
     expectGps($route !== null && $route['summary']['position_count'] === 2, 'l’historique restitue toutes les positions du trajet');
     expectGps($route['summary']['distance_km'] > 0, 'la distance historique est calculée');
