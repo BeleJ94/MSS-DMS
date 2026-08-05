@@ -8,6 +8,7 @@ $app = require dirname(__DIR__) . '/bootstrap/app.php';
 use App\Core\Database;
 use App\Core\Session;
 use App\Models\GpsTracking;
+use App\Models\LiveTracking;
 
 $pdo = Database::connection();
 $deliveryId = null;
@@ -71,6 +72,15 @@ try {
     $stored = $pdo->query('SELECT * FROM delivery_gps_positions WHERE delivery_id=' . $deliveryId)->fetch();
     expectGps($stored && abs((float) $stored['latitude'] - (-11.6647)) < 0.00001, 'les coordonnées GPS sont persistées');
     expectGps($stored && $stored['source'] === 'pwa', 'la source PWA est conservée');
+    $visible = null;
+    foreach (LiveTracking::positions() as $trackedDelivery) {
+        if ((int) $trackedDelivery['id'] === $deliveryId) {
+            $visible = $trackedDelivery;
+            break;
+        }
+    }
+    expectGps($visible !== null, 'la mission apparaît dans le suivi en direct administrateur');
+    expectGps(abs((float) $visible['longitude'] - 27.4794) < 0.00001, 'le suivi en direct restitue la dernière position enregistrée');
 
     $pdo->prepare('UPDATE deliveries SET status="Livrée" WHERE id=:id')->execute(['id' => $deliveryId]);
     try {
