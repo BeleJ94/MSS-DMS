@@ -10,6 +10,7 @@ use App\Core\PodPdf;
 use App\Core\PodUpload;
 use App\Core\Session;
 use App\Models\DeliveryPod;
+use App\Models\Delivery;
 
 $pdo = Database::connection();
 $deliveryId = null; $reference = 'TEST-POD-'.date('YmdHis'); $driverState = null; $vehicleState = null;
@@ -35,6 +36,9 @@ try {
     expectPod($pod!==null&&$pod['recipient_name']==='Réceptionnaire Test','le réceptionnaire et la preuve sont enregistrés');
     expectPod(!empty($pod['signed_note_data']),'la photo facultative du bon signé est conservée');
     expectPod((int)$pod['driver_id']===(int)$resource['driver_id']&&(int)$pod['vehicle_id']===(int)$resource['vehicle_id'],'le chauffeur et le véhicule sont capturés');
+    $listedPod = null;
+    foreach (Delivery::listing(['search'=>$reference]) as $listedDelivery) { if ((int)$listedDelivery['id'] === $deliveryId) { $listedPod = $listedDelivery; break; } }
+    expectPod($listedPod !== null && (int)$listedPod['has_pod'] === 1,'la liste des livraisons expose la disponibilité du PDF');
     expectPod(abs((float)$pod['latitude']-(-11.6647))<0.00001,'les coordonnées GPS sont enregistrées');
     $pdf=PodPdf::render($pod);
     expectPod(strncmp($pdf,'%PDF-1.4',8)===0&&strlen($pdf)>5000,'le PDF professionnel est généré');
