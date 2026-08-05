@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS delivery_gps_positions (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    delivery_id BIGINT UNSIGNED NOT NULL,
+    driver_id BIGINT UNSIGNED NOT NULL,
+    device_position_id VARCHAR(80) NOT NULL,
+    latitude DECIMAL(10,7) NOT NULL,
+    longitude DECIMAL(11,7) NOT NULL,
+    accuracy_m DECIMAL(10,2) NOT NULL,
+    altitude_m DECIMAL(10,2) NULL,
+    speed_mps DECIMAL(10,3) NULL,
+    heading_deg DECIMAL(7,2) NULL,
+    captured_at DATETIME(3) NOT NULL,
+    received_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    source VARCHAR(30) NOT NULL DEFAULT 'pwa',
+    UNIQUE KEY uq_gps_device_position (delivery_id,driver_id,device_position_id),
+    KEY idx_gps_delivery_time (delivery_id,captured_at),
+    KEY idx_gps_driver_time (driver_id,captured_at),
+    CONSTRAINT fk_gps_delivery FOREIGN KEY (delivery_id) REFERENCES deliveries (id) ON DELETE CASCADE,
+    CONSTRAINT fk_gps_driver FOREIGN KEY (driver_id) REFERENCES drivers (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -1,0 +1,1 @@
+<div class="error-page"><span>419</span><h1>Session expirée</h1><p>Le jeton de sécurité est absent ou invalide. Rechargez la page avant de réessayer.</p><a class="button button-primary" href="./">Recharger</a></div>

@@ -1,0 +1,19 @@
+CREATE TABLE IF NOT EXISTS migrations (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    migration VARCHAR(255) NOT NULL,
+    batch INT UNSIGNED NOT NULL,
+    executed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_migrations_migration (migration)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS application_settings (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    setting_key VARCHAR(120) NOT NULL,
+    setting_value TEXT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_application_settings_key (setting_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

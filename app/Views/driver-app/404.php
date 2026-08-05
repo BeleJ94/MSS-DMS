@@ -1,0 +1,1 @@
+<section class="mobile-empty warning"><i data-lucide="shield-alert"></i><h1>Mission introuvable</h1><p>Cette mission ne vous est pas affectée ou n’existe plus.</p><a href="<?= $baseUrl ?>/driver-app">Retour à mes missions</a></section>

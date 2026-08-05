@@ -1,0 +1,1 @@
+.mobile-head-actions{display:flex;align-items:center;gap:7px}.gps-pill{height:31px;padding:0 9px;border-radius:16px;background:#e6f4ef;color:#24775f;display:flex;align-items:center;gap:5px;font-size:9px}.gps-pill svg{width:13px}.gps-pill.queued{background:#fff2dc;color:#946413}.gps-pill.error{background:#fae9ec;color:#a43f4b}.gps-pill[hidden]{display:none}
