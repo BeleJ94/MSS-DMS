@@ -78,6 +78,10 @@ vm.runInNewContext(fs.readFileSync(__dirname + '/../public/assets/js/driver-trac
     expect(sentPayload !== null, 'un faux état navigateur hors ligne ne bloque pas l’envoi');
     expect(sentPayload && sentPayload.url === '/mss/api/driver-app/missions/42/positions', 'la bonne API de mission est appelée');
     expect(sentPayload.body.positions.length === 1 && sentPayload.body._token === 'test-token', 'la position et le jeton CSRF sont envoyés');
+    const callsBeforePeriodicCapture = gpsCalls;
+    expect(await context.MSSGps.captureNow(), 'une capture périodique est déclenchée même sans mouvement');
+    expect(gpsCalls > callsBeforePeriodicCapture, 'la capture périodique interroge réellement la géolocalisation');
+    expect(await context.MSSGps.flush(), 'la nouvelle position périodique est synchronisée');
     context.MSSGps.stop();
     expect(!context.MSSGps.isActive(), 'le tracking s’arrête après la mission');
     process.stdout.write('DRIVER_TRACKING_OK\n');
