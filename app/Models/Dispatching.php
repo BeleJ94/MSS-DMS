@@ -39,9 +39,9 @@ final class Dispatching
         $pdo = Database::connection();
         $delivery = self::delivery($pdo, $deliveryId);
         if (!$delivery) {throw new RuntimeException('Livraison introuvable.');}
-        $drivers = $pdo->prepare("SELECT dr.id,dr.first_name,dr.last_name,dr.phone,dr.status,dr.license_category,dr.license_expires_at,CASE WHEN dr.id=:current THEN 1 ELSE 0 END is_current FROM drivers dr WHERE dr.is_active=1 AND (dr.status='Disponible' OR dr.id=:current2) ORDER BY is_current DESC,dr.last_name,dr.first_name");
+        $drivers = $pdo->prepare("SELECT dr.id,dr.first_name,dr.last_name,dr.phone,dr.status,dr.license_category,dr.license_expires_at,CASE WHEN dr.id=:current THEN 1 ELSE 0 END is_current FROM drivers dr WHERE dr.is_active=1 AND (dr.status IN ('Disponible','Affecté') OR dr.id=:current2) ORDER BY is_current DESC,dr.last_name,dr.first_name");
         $drivers->execute(['current'=>(int)($delivery['driver_id'] ?: 0),'current2'=>(int)($delivery['driver_id'] ?: 0)]);
-        $vehicles = $pdo->prepare("SELECT v.id,v.registration_number,v.brand,v.model,v.vehicle_type,v.capacity_value,v.capacity_unit,v.status,CASE WHEN v.id=:current THEN 1 ELSE 0 END is_current FROM vehicles v WHERE v.is_active=1 AND (v.status='Disponible' OR v.id=:current2) ORDER BY is_current DESC,v.registration_number");
+        $vehicles = $pdo->prepare("SELECT v.id,v.registration_number,v.brand,v.model,v.vehicle_type,v.capacity_value,v.capacity_unit,v.status,CASE WHEN v.id=:current THEN 1 ELSE 0 END is_current FROM vehicles v WHERE v.is_active=1 AND (v.status IN ('Disponible','Affecté') OR v.id=:current2) ORDER BY is_current DESC,v.registration_number");
         $vehicles->execute(['current'=>(int)($delivery['vehicle_id'] ?: 0),'current2'=>(int)($delivery['vehicle_id'] ?: 0)]);
         return ['delivery'=>$delivery,'drivers'=>$drivers->fetchAll(),'vehicles'=>$vehicles->fetchAll()];
     }
@@ -96,11 +96,11 @@ final class Dispatching
     private static function assertAvailable(PDO $pdo, string $column, int $resourceId, int $deliveryId, string $status, string $label): void
     {
         $active = "'".implode("','", self::ACTIVE_STATUSES)."'";
-        $statement = $pdo->prepare('SELECT reference,scheduled_at,status FROM deliveries WHERE '.$column.'=:resource AND id<>:delivery AND status IN ('.$active.') ORDER BY scheduled_at LIMIT 1 FOR UPDATE');
-        $statement->execute(['resource'=>$resourceId,'delivery'=>$deliveryId]);
+        $statement = $pdo->prepare('SELECT reference,scheduled_at,status FROM deliveries WHERE '.$column.'=:resource AND id<>:delivery AND status IN ('.$active.') AND scheduled_at<(SELECT DATE_ADD(scheduled_at,INTERVAL planning_duration_minutes MINUTE) FROM deliveries WHERE id=:target) AND DATE_ADD(scheduled_at,INTERVAL planning_duration_minutes MINUTE)>(SELECT scheduled_at FROM deliveries WHERE id=:target2) ORDER BY scheduled_at LIMIT 1 FOR UPDATE');
+        $statement->execute(['resource'=>$resourceId,'delivery'=>$deliveryId,'target'=>$deliveryId,'target2'=>$deliveryId]);
         $conflict = $statement->fetch();
         if ($conflict) {throw new RuntimeException('Conflit '.$label.' : déjà affecté à '.$conflict['reference'].' ('.$conflict['status'].') prévue le '.date('d/m/Y H:i', strtotime($conflict['scheduled_at'])).'.');}
-        if ($status !== 'Disponible') {
+        if (!in_array($status, ['Disponible','Affecté'], true)) {
             $current = $pdo->prepare('SELECT COUNT(*) FROM deliveries WHERE id=:delivery AND '.$column.'=:resource');
             $current->execute(['delivery'=>$deliveryId,'resource'=>$resourceId]);
             if (!(int)$current->fetchColumn()) {throw new RuntimeException('Conflit '.$label.' : statut actuel « '.$status.' ». Seules les ressources disponibles peuvent être affectées.');}

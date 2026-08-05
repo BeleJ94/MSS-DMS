@@ -31,6 +31,7 @@ $errorMessage = Session::pull('error');
     <?php if (($page ?? '') === 'incidents'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/incidents.css"><?php endif; ?>
     <?php if (($page ?? '') === 'dashboard'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/dashboard-incidents.css"><?php endif; ?>
     <?php if (($page ?? '') === 'dashboard'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/dashboard-final.css"><?php endif; ?>
+    <?php if (($page ?? '') === 'planning'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/planning.css?v=20260805-2"><?php endif; ?>
 </head>
 <body>
 <div class="app-shell">
@@ -45,7 +46,7 @@ $errorMessage = Session::pull('error');
             <a class="nav-item <?= ($page ?? '') === 'dashboard' ? 'active' : '' ?>" href="<?= $baseUrl ?>/"><i data-lucide="layout-dashboard"></i><span>Tableau de bord</span></a>
             <?php if (Auth::can('deliveries.view')): ?><a class="nav-item <?= ($page ?? '') === 'deliveries' ? 'active' : '' ?>" href="<?= $baseUrl ?>/deliveries"><i data-lucide="package-check"></i><span>Livraisons</span></a><?php endif; ?>
             <?php if (Auth::can('dispatching.view')): ?><a class="nav-item <?= ($page ?? '') === 'dispatching' ? 'active' : '' ?>" href="<?= $baseUrl ?>/dispatching"><i data-lucide="calendar-check-2"></i><span>Dispatching</span></a><?php endif; ?>
-            <button class="nav-item nav-button"><i data-lucide="calendar-days"></i><span>Planning</span></button>
+            <?php if (Auth::can('planning.view')): ?><a class="nav-item <?= ($page ?? '') === 'planning' ? 'active' : '' ?>" href="<?= $baseUrl ?>/planning"><i data-lucide="calendar-days"></i><span>Planning</span></a><?php endif; ?>
             <?php if (Auth::can('tracking.view')): ?><a class="nav-item <?= ($page ?? '') === 'live-tracking' ? 'active' : '' ?>" href="<?= $baseUrl ?>/live-tracking"><i data-lucide="radio-tower"></i><span>Suivi en direct</span><i class="live-dot"></i></a><?php endif; ?>
             <span class="nav-label nav-label-spaced">Référentiels</span>
             <?php if (Auth::can('clients.view')): ?><a class="nav-item <?= ($page ?? '') === 'clients' ? 'active' : '' ?>" href="<?= $baseUrl ?>/clients"><i data-lucide="building-2"></i><span>Clients</span></a><?php endif; ?>
@@ -103,6 +104,7 @@ $errorMessage = Session::pull('error');
 <?php if (($page ?? '') === 'deliveries'): ?><script src="<?= $baseUrl ?>/assets/js/deliveries.js?v=20260805-2"></script><?php endif; ?>
 <?php if (($page ?? '') === 'incidents'): ?><script src="<?= $baseUrl ?>/assets/js/incidents.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'dispatching'): ?><script src="<?= $baseUrl ?>/assets/js/dispatching.js"></script><?php endif; ?>
+<?php if (($page ?? '') === 'planning'): ?><script src="<?= $baseUrl ?>/assets/js/planning.js?v=20260805-1"></script><?php endif; ?>
 <?php if (($page ?? '') === 'live-tracking'): ?><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script><script src="<?= $baseUrl ?>/assets/js/live-tracking.js"></script><?php endif; ?>
 <?php if (!empty($usesLeaflet)): ?><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script><script src="<?= $baseUrl ?>/assets/js/route-history.js?v=20260805-1"></script><?php endif; ?>
 </body>
