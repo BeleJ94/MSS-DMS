@@ -59,6 +59,7 @@ $app->router()->get('/deliveries', [DeliveryController::class, 'index'], [Authen
 $app->router()->get('/deliveries/{id}', [DeliveryController::class, 'show'], [Authenticate::class]);
 $app->router()->get('/api/deliveries', [DeliveryController::class, 'data'], [Authenticate::class]);
 $app->router()->get('/api/deliveries/client/{id}/options', [DeliveryController::class, 'clientOptions'], [Authenticate::class]);
+$app->router()->get('/api/deliveries/{id}/route-history', [DeliveryController::class, 'routeHistory'], [Authenticate::class]);
 $app->router()->post('/api/deliveries', [DeliveryController::class, 'store'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->post('/api/deliveries/{id}', [DeliveryController::class, 'update'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->post('/api/deliveries/{id}/transition', [DeliveryController::class, 'transition'], [Authenticate::class, VerifyCsrf::class]);

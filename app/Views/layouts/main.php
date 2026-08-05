@@ -23,10 +23,11 @@ $errorMessage = Session::pull('error');
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
-    <?php if (($page ?? '') === 'live-tracking'): ?><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""><?php endif; ?>
+    <?php if (($page ?? '') === 'live-tracking' || !empty($usesLeaflet)): ?><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""><?php endif; ?>
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/app.css">
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/interface.css">
     <?php if (($page ?? '') === 'deliveries'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/pod-admin.css"><?php endif; ?>
+    <?php if (!empty($usesLeaflet)): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/route-history.css?v=20260805-1"><?php endif; ?>
     <?php if (($page ?? '') === 'incidents'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/incidents.css"><?php endif; ?>
     <?php if (($page ?? '') === 'dashboard'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/dashboard-incidents.css"><?php endif; ?>
     <?php if (($page ?? '') === 'dashboard'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/dashboard-final.css"><?php endif; ?>
@@ -103,5 +104,6 @@ $errorMessage = Session::pull('error');
 <?php if (($page ?? '') === 'incidents'): ?><script src="<?= $baseUrl ?>/assets/js/incidents.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'dispatching'): ?><script src="<?= $baseUrl ?>/assets/js/dispatching.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'live-tracking'): ?><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script><script src="<?= $baseUrl ?>/assets/js/live-tracking.js"></script><?php endif; ?>
+<?php if (!empty($usesLeaflet)): ?><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script><script src="<?= $baseUrl ?>/assets/js/route-history.js?v=20260805-1"></script><?php endif; ?>
 </body>
 </html>

@@ -9,6 +9,7 @@ use App\Core\Database;
 use App\Core\Session;
 use App\Models\GpsTracking;
 use App\Models\LiveTracking;
+use App\Models\DeliveryRouteHistory;
 
 $pdo = Database::connection();
 $deliveryId = null;
@@ -82,7 +83,21 @@ try {
     expectGps($visible !== null, 'la mission apparaît dans le suivi en direct administrateur');
     expectGps(abs((float) $visible['longitude'] - 27.4794) < 0.00001, 'le suivi en direct restitue la dernière position enregistrée');
 
+    $secondPosition = array_merge($position, [
+        'position_id' => $positionId . '-second',
+        'latitude' => -11.6589,
+        'longitude' => 27.4862,
+        'captured_at' => gmdate('c', time() + 60),
+    ]);
+    GpsTracking::recordBatch($deliveryId, [$secondPosition]);
+    $route = DeliveryRouteHistory::forDelivery($deliveryId);
+    expectGps($route !== null && $route['summary']['position_count'] === 2, 'l’historique restitue toutes les positions du trajet');
+    expectGps($route['summary']['distance_km'] > 0, 'la distance historique est calculée');
+    expectGps(count($route['points']) === 2, 'les points cartographiques sont ordonnés et disponibles');
+
     $pdo->prepare('UPDATE deliveries SET status="Livrée" WHERE id=:id')->execute(['id' => $deliveryId]);
+    $closedRoute = DeliveryRouteHistory::forDelivery($deliveryId);
+    expectGps($closedRoute !== null && $closedRoute['summary']['position_count'] === 2, 'le trajet reste consultable après la livraison');
     try {
         GpsTracking::recordBatch($deliveryId, [array_merge($position, ['position_id' => $positionId . '-closed'])]);
         throw new RuntimeException('Le tracking aurait dû être refusé après la mission.');

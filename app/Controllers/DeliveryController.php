@@ -11,13 +11,15 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
 use App\Models\Delivery;
+use App\Models\DeliveryRouteHistory;
 use RuntimeException;
 use Throwable;
 
 final class DeliveryController extends Controller
 {
     public function index(Request $request): Response{if(!Auth::can('deliveries.view')){return $this->forbidden(false);}return $this->view('deliveries/index',$this->viewData(['title'=>'Livraisons','page'=>'deliveries','canManage'=>Auth::can('deliveries.manage')]));}
-    public function show(Request $request): Response{if(!Auth::can('deliveries.view')){return $this->forbidden(false);}$delivery=Delivery::find((int)$request->param('id'));if(!$delivery){return new Response(View::render('errors/404',['title'=>'Livraison introuvable']),404);}return $this->view('deliveries/show',$this->viewData(['title'=>$delivery['reference'],'page'=>'deliveries','delivery'=>$delivery,'allowedNext'=>Delivery::allowedNext($delivery),'canManage'=>Auth::can('deliveries.manage'),'canTransition'=>Auth::can('deliveries.status')]));}
+    public function show(Request $request): Response{if(!Auth::can('deliveries.view')){return $this->forbidden(false);}$delivery=Delivery::find((int)$request->param('id'));if(!$delivery){return new Response(View::render('errors/404',['title'=>'Livraison introuvable']),404);}$canViewRoute=Auth::can('tracking.history.view');return $this->view('deliveries/show',$this->viewData(['title'=>$delivery['reference'],'page'=>'deliveries','delivery'=>$delivery,'allowedNext'=>Delivery::allowedNext($delivery),'canManage'=>Auth::can('deliveries.manage'),'canTransition'=>Auth::can('deliveries.status'),'canViewRoute'=>$canViewRoute,'usesLeaflet'=>$canViewRoute]));}
+    public function routeHistory(Request $request): Response{if(!Auth::can('tracking.history.view')){return $this->forbidden(true);}$history=DeliveryRouteHistory::forDelivery((int)$request->param('id'));if($history===null){return $this->json(['success'=>false,'message'=>'Livraison introuvable.'],404);}return $this->json(['success'=>true,'data'=>$history]);}
     public function data(Request $request): Response{if(!Auth::can('deliveries.view')){return $this->forbidden(true);}return $this->json(['data'=>Delivery::listing(['search'=>(string)$request->query('search',''),'status'=>(string)$request->query('status',''),'priority'=>(string)$request->query('priority',''),'client_id'=>(string)$request->query('client_id',''),'date_from'=>(string)$request->query('date_from',''),'date_to'=>(string)$request->query('date_to','')])]);}
     public function clientOptions(Request $request): Response{if(!Auth::can('deliveries.view')){return $this->forbidden(true);}return $this->json(['success'=>true,'data'=>Delivery::clientOptions((int)$request->param('id'))]);}
     public function store(Request $request): Response{return $this->persist($request,null);}
@@ -38,4 +40,3 @@ final class DeliveryController extends Controller
     private function forbidden(bool $json): Response{return $json?$this->json(['success'=>false,'message'=>'Permission insuffisante.'],403):new Response(View::render('errors/403',['title'=>'Accès refusé']),403);}
     private function url(string $path): string{return rtrim((string)Env::get('APP_URL',''),'/').$path;}
 }
-
