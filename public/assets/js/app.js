@@ -5,6 +5,15 @@
         window.lucide.createIcons({ attrs: { 'stroke-width': 1.8 } });
     }
 
+    $('.modal-actions button[data-modal-close],.modal-actions button[data-planning-close],.modal-actions button.modal-close').each(function () {
+        if (!$(this).find('[data-lucide]').length) {
+            $(this).prepend('<i data-lucide="x"></i>');
+        }
+    });
+    if (window.lucide) {
+        window.lucide.createIcons({ attrs: { 'stroke-width': 1.8 } });
+    }
+
     function confirmationCopy(form) {
         var $form=$(form), title='Confirmer l\u2019enregistrement ?', text='Vérifiez les informations avant de continuer.', button='Confirmer';
         if($form.is('[data-client-form]')){title='Enregistrer ce client ?';text='Les informations, contacts et sites de livraison seront mis à jour.';button='Enregistrer';}

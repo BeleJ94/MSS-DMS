@@ -32,6 +32,8 @@ $errorMessage = Session::pull('error');
     <?php if (($page ?? '') === 'dashboard'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/dashboard-incidents.css"><?php endif; ?>
     <?php if (($page ?? '') === 'dashboard'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/dashboard-final.css"><?php endif; ?>
     <?php if (($page ?? '') === 'planning'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/planning.css?v=20260805-2"><?php endif; ?>
+    <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/typography.css?v=20260806-1">
+    <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/modal-actions.css?v=20260806-2">
 </head>
 <body>
 <div class="app-shell">
@@ -95,7 +97,7 @@ $errorMessage = Session::pull('error');
 <script>window.MSS_DMS = <?= json_encode(['baseUrl' => $baseUrl], JSON_UNESCAPED_SLASHES) ?>;</script>
 <script>window.MSS_CSRF = <?= json_encode(Csrf::token()) ?>;</script>
 <?php if ($successMessage || $errorMessage): ?><script>window.MSS_FLASH = <?= json_encode(['type' => $successMessage ? 'success' : 'error', 'message' => $successMessage ?: $errorMessage], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;</script><?php endif; ?>
-<script src="<?= $baseUrl ?>/assets/js/app.js?v=20260805-2"></script>
+<script src="<?= $baseUrl ?>/assets/js/app.js?v=20260806-3"></script>
 <?php if (($page ?? '') === 'dashboard'): ?><script src="<?= $baseUrl ?>/assets/js/dashboard.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'clients'): ?><script src="<?= $baseUrl ?>/assets/js/clients.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'drivers'): ?><script src="<?= $baseUrl ?>/assets/js/drivers.js"></script><?php endif; ?>

@@ -84,22 +84,35 @@ try {
     expectGps($visible !== null, 'la mission apparaît dans le suivi en direct administrateur');
     expectGps(abs((float) $visible['longitude'] - 27.4794) < 0.00001, 'le suivi en direct restitue la dernière position enregistrée');
 
-    $secondPosition = array_merge($position, [
-        'position_id' => $positionId . '-second',
-        'latitude' => -11.6589,
-        'longitude' => 27.4862,
-        'captured_at' => gmdate('c', time() + 60),
-    ]);
-    $second = GpsTracking::recordBatch($deliveryId, [$secondPosition]);
-    expectGps($second['total_positions'] === 2, 'le serveur confirme plusieurs positions pour la mission');
+    $path = [
+        [-11.6628, 27.4816],
+        [-11.6604, 27.4841],
+        [-11.6589, 27.4862],
+        [-11.6561, 27.4890],
+        [-11.6537, 27.4924],
+    ];
+    $movingPositions = [];
+    foreach ($path as $index => $coordinates) {
+        $movingPositions[] = array_merge($position, [
+            'position_id' => $positionId . '-move-' . ($index + 1),
+            'latitude' => $coordinates[0],
+            'longitude' => $coordinates[1],
+            'captured_at' => gmdate('c', time() + (($index + 1) * 60)),
+        ]);
+    }
+    $second = GpsTracking::recordBatch($deliveryId, $movingPositions);
+    expectGps($second['accepted'] === 5, 'cinq nouvelles positions de déplacement sont acceptées');
+    expectGps($second['total_positions'] === 6, 'le serveur confirme six positions distinctes pour la mission en cours');
+    $storedCount = (int) $pdo->query('SELECT COUNT(*) FROM delivery_gps_positions WHERE delivery_id=' . $deliveryId)->fetchColumn();
+    expectGps($storedCount === 6, 'les six positions sont réellement présentes dans la base');
     $route = DeliveryRouteHistory::forDelivery($deliveryId);
-    expectGps($route !== null && $route['summary']['position_count'] === 2, 'l’historique restitue toutes les positions du trajet');
+    expectGps($route !== null && $route['summary']['position_count'] === 6, 'l’historique restitue toutes les positions du trajet');
     expectGps($route['summary']['distance_km'] > 0, 'la distance historique est calculée');
-    expectGps(count($route['points']) === 2, 'les points cartographiques sont ordonnés et disponibles');
+    expectGps(count($route['points']) === 6, 'les points cartographiques sont ordonnés et disponibles');
 
     $pdo->prepare('UPDATE deliveries SET status="Livrée" WHERE id=:id')->execute(['id' => $deliveryId]);
     $closedRoute = DeliveryRouteHistory::forDelivery($deliveryId);
-    expectGps($closedRoute !== null && $closedRoute['summary']['position_count'] === 2, 'le trajet reste consultable après la livraison');
+    expectGps($closedRoute !== null && $closedRoute['summary']['position_count'] === 6, 'le trajet reste consultable après la livraison');
     try {
         GpsTracking::recordBatch($deliveryId, [array_merge($position, ['position_id' => $positionId . '-closed'])]);
         throw new RuntimeException('Le tracking aurait dû être refusé après la mission.');

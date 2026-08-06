@@ -47,7 +47,7 @@ $maps = $mission['latitude'] && $mission['longitude']
             <label class="pod-photo-field optional"><input type="file" name="signed_note_photo" accept="image/jpeg,image/png,image/webp" capture="environment"><span><i data-lucide="file-check-2"></i><b>Bon signé</b><small data-file-label="signed_note_photo">Photo facultative</small></span></label>
             <label class="pod-field"><span>Observations</span><textarea name="observations" maxlength="2000" rows="3" placeholder="État des colis, réserves éventuelles…"></textarea></label>
             <div class="pod-auto-data"><span><i data-lucide="clock-3"></i>Date et heure automatiques</span><span><i data-lucide="map-pin"></i>GPS capturé à la validation</span><span><i data-lucide="truck"></i><?= htmlspecialchars($mission['registration_number'] ?: 'Véhicule affecté', ENT_QUOTES, 'UTF-8') ?></span></div>
-            <button class="pod-submit" type="submit"><i data-lucide="badge-check"></i><span>Confirmer la livraison</span></button>
+            <div class="pod-mobile-actions"><button class="pod-cancel" type="button" data-pod-close><i data-lucide="x"></i>Annuler</button><button class="pod-submit" type="submit"><i data-lucide="badge-check"></i><span>Confirmer la livraison</span></button></div>
             <p class="pod-legal">En signant, le réceptionnaire confirme avoir reçu les marchandises indiquées.</p>
         </form>
     </section>
@@ -62,7 +62,7 @@ $maps = $mission['latitude'] && $mission['longitude']
             <label class="incident-mobile-field"><span>Description *</span><textarea name="description" rows="5" maxlength="3000" placeholder="Expliquez clairement ce qui s’est passé…" required></textarea><small>10 caractères minimum</small></label>
             <label class="incident-mobile-photos"><input type="file" name="incident_photos" accept="image/jpeg,image/png,image/webp" capture="environment" multiple><span><i data-lucide="camera"></i><b>Ajouter des photos</b><small id="incidentPhotoLabel">Jusqu’à 3 photos · facultatif</small></span></label>
             <div class="incident-auto-data"><span><i data-lucide="clock-3"></i>Date et heure automatiques</span><span><i data-lucide="map-pin"></i>Position GPS capturée à l’envoi</span><span><i data-lucide="package"></i><?= htmlspecialchars($mission['reference'],ENT_QUOTES,'UTF-8') ?></span></div>
-            <button class="incident-submit" type="submit"><i data-lucide="siren"></i>Envoyer l’alerte</button>
+            <div class="incident-mobile-actions"><button class="incident-cancel" type="button" data-incident-close><i data-lucide="x"></i>Annuler</button><button class="incident-submit" type="submit"><i data-lucide="siren"></i>Envoyer l’alerte</button></div>
             <p>L’incident suspendra la mission et alertera le dispatching.</p>
         </form>
     </section>

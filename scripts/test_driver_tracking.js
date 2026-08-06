@@ -9,6 +9,8 @@ function expect(condition, message) {
 const storage = {};
 let gpsCalls = 0;
 let sentPayload = null;
+const sentPayloads = [];
+let watchSuccess = null;
 const listeners = {};
 const context = {
     console,
@@ -48,14 +50,15 @@ const context = {
                     failure({ code: 2 });
                     return;
                 }
-                success({ coords: { latitude: -11.6647, longitude: 27.4794, accuracy: 12, altitude: null, speed: null, heading: null }, timestamp: Date.now() });
+                success({ coords: { latitude: -11.6647 + (gpsCalls * 0.0001), longitude: 27.4794 + (gpsCalls * 0.0001), accuracy: 12, altitude: null, speed: null, heading: null }, timestamp: Date.now() });
             },
-            watchPosition: function () { return 9; },
+            watchPosition: function (success) { watchSuccess = success; return 9; },
             clearWatch: function () {}
         }
     },
     fetch: function (url, options) {
         sentPayload = { url, body: JSON.parse(options.body) };
+        sentPayloads.push(sentPayload);
         return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ success: true, data: { accepted: 1 } }) });
     },
     addEventListener: function (name, callback) { listeners[name] = callback; },
@@ -69,7 +72,7 @@ vm.runInNewContext(fs.readFileSync(__dirname + '/../public/assets/js/driver-trac
 (async function () {
     expect(await context.MSSGps.permissionState() === 'denied', 'l’état navigateur bloqué est détecté');
     const position = await context.MSSGps.prepare();
-    expect(gpsCalls === 2 && position.coords.latitude === -11.6647, 'un GPS autorisé est relu avec le mode de secours');
+    expect(gpsCalls === 2 && Number.isFinite(position.coords.latitude), 'un GPS autorisé est relu avec le mode de secours');
     expect(await context.MSSGps.permissionState() === 'granted', 'un succès GPS corrige un état Permissions API obsolète');
     await context.MSSGps.begin(42, position);
     expect(context.MSSGps.isActive(), 'le tracking démarre pour la mission active');
@@ -78,6 +81,13 @@ vm.runInNewContext(fs.readFileSync(__dirname + '/../public/assets/js/driver-trac
     expect(sentPayload !== null, 'un faux état navigateur hors ligne ne bloque pas l’envoi');
     expect(sentPayload && sentPayload.url === '/mss/api/driver-app/missions/42/positions', 'la bonne API de mission est appelée');
     expect(sentPayload.body.positions.length === 1 && sentPayload.body._token === 'test-token', 'la position et le jeton CSRF sont envoyés');
+    await watchSuccess({ coords: { latitude: -11.6631, longitude: 27.4812, accuracy: 9, altitude: 1249, speed: 4.2, heading: 40 }, timestamp: Date.now() + 1000 });
+    await watchSuccess({ coords: { latitude: -11.6614, longitude: 27.4835, accuracy: 8, altitude: 1250, speed: 4.6, heading: 42 }, timestamp: Date.now() + 2000 });
+    expect(await context.MSSGps.flush(), 'les positions successives de watchPosition sont synchronisées');
+    const allSentPositions = sentPayloads.reduce((rows, payload) => rows.concat(payload.body.positions || []), []);
+    expect(allSentPositions.length >= 3, 'la PWA envoie plusieurs positions pour la même mission');
+    expect(new Set(allSentPositions.map(row => row.position_id)).size === allSentPositions.length, 'chaque position PWA possède un identifiant unique');
+    expect(new Set(allSentPositions.map(row => row.latitude + ',' + row.longitude)).size >= 3, 'les coordonnées successives du déplacement restent distinctes');
     const callsBeforePeriodicCapture = gpsCalls;
     expect(await context.MSSGps.captureNow(), 'une capture périodique est déclenchée même sans mouvement');
     expect(gpsCalls > callsBeforePeriodicCapture, 'la capture périodique interroge réellement la géolocalisation');

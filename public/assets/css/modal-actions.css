@@ -1,0 +1,37 @@
+/* Consistent, decision-oriented modal footers */
+.modal-card .modal-actions{position:sticky;inset:auto 0 0;z-index:4;display:flex;flex:none;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:82px;margin-top:22px;padding:18px 22px;border-top:1px solid #e2e8f0;border-radius:0 0 12px 12px;background:#fff;box-shadow:0 -8px 20px rgba(15,23,42,.035);overflow:visible}
+.modal-card .modal-actions .button{min-height:44px;min-width:140px;padding:0 18px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:650;line-height:1.2;transition:background-color .15s,border-color .15s,box-shadow .15s,transform .15s}
+.modal-card .modal-actions .button svg{width:17px;height:17px}
+.modal-card .modal-actions .button-secondary{order:1;margin-right:auto;background:#fff;color:#526174;border:1px solid #cfd8e3;box-shadow:0 1px 2px rgba(15,23,42,.03)}
+.modal-card .modal-actions .button-secondary:hover{background:#f7f9fc;border-color:#aebccc;color:#26364a}
+.modal-card .modal-actions .button-primary,.modal-card .modal-actions .button-success{order:2;min-width:190px;border:1px solid transparent;box-shadow:0 4px 10px rgba(36,93,168,.16)}
+.modal-card .modal-actions .button-primary:hover,.modal-card .modal-actions .button-success:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(36,93,168,.2)}
+.modal-card .modal-actions .button:focus-visible,.pod-mobile-actions button:focus-visible,.incident-mobile-actions button:focus-visible{outline:3px solid rgba(37,99,235,.2);outline-offset:2px}
+.modal-card .modal-actions .button:disabled{opacity:.58;cursor:not-allowed;transform:none;box-shadow:none}
+.vehicle-form,.driver-form,.delivery-form,.client-form{scroll-padding-bottom:96px}
+.vehicle-form-actions,.driver-form-actions,.delivery-form-actions,.client-form-actions{box-sizing:border-box!important;min-height:82px!important;padding-top:18px!important;padding-bottom:18px!important}
+
+/* SweetAlert confirmations follow the same cancel / validate hierarchy. */
+.swal2-popup .swal2-actions{gap:10px}.swal2-popup .swal2-styled{min-height:44px;margin:0!important;padding:0 18px!important;border-radius:8px!important;font-size:14px!important;font-weight:650!important}.swal2-popup .swal2-cancel{order:1;background:#fff!important;color:#526174!important;border:1px solid #cfd8e3!important}.swal2-popup .swal2-confirm{order:2}
+.swal2-popup.mss-confirm-popup .swal2-actions{display:grid!important;grid-template-columns:minmax(120px,1fr) minmax(150px,1.25fr);gap:10px;width:100%;margin:20px 0 0!important;padding-top:16px;border-top:1px solid #e5eaf0}
+.swal2-popup.mss-confirm-popup .swal2-styled{width:100%;min-height:44px;margin:0!important;padding:0 16px!important;border-radius:8px!important;font-size:14px!important;font-weight:650!important}
+.swal2-popup.mss-confirm-popup .swal2-cancel{order:1;background:#fff!important;color:#526174!important;border:1px solid #cfd8e3!important}
+.swal2-popup.mss-confirm-popup .swal2-confirm{order:2;box-shadow:0 4px 10px rgba(36,93,168,.16)!important}
+
+/* Driver sheets keep the main action close to the thumb, with an explicit exit. */
+.pod-mobile-actions,.incident-mobile-actions{position:sticky;bottom:0;z-index:3;display:grid;grid-template-columns:minmax(105px,.75fr) minmax(190px,1.45fr);gap:10px;padding:12px 0 max(4px,env(safe-area-inset-bottom));background:linear-gradient(to top,#f7f9fb 78%,rgba(247,249,251,0))}
+.pod-mobile-actions .pod-cancel,.incident-mobile-actions .incident-cancel{min-height:56px;border:1px solid #cfd8e3;border-radius:13px;background:#fff;color:#526174;font:650 14px Inter;display:flex;align-items:center;justify-content:center;gap:7px}
+.pod-mobile-actions .pod-cancel svg,.incident-mobile-actions .incident-cancel svg{width:17px;height:17px}
+.pod-mobile-actions .pod-submit,.incident-mobile-actions .incident-submit{min-width:0;width:100%}
+
+@media(max-width:600px){
+ .modal-card .modal-actions{display:grid;grid-template-columns:1fr;min-height:118px;padding:14px 15px max(16px,env(safe-area-inset-bottom));gap:9px;border-radius:0}
+ .modal-card .modal-actions .button{width:100%;min-width:0}
+ .modal-card .modal-actions .button-primary,.modal-card .modal-actions .button-success{order:1;min-height:48px}
+ .modal-card .modal-actions .button-secondary{order:2;min-height:44px;margin:0}
+ .swal2-popup.mss-confirm-popup .swal2-actions{grid-template-columns:1fr}
+ .swal2-popup.mss-confirm-popup .swal2-confirm{order:1}.swal2-popup.mss-confirm-popup .swal2-cancel{order:2}
+ .pod-mobile-actions,.incident-mobile-actions{grid-template-columns:1fr}
+ .pod-mobile-actions .pod-submit,.incident-mobile-actions .incident-submit{order:1}
+ .pod-mobile-actions .pod-cancel,.incident-mobile-actions .incident-cancel{order:2;min-height:48px}
+}

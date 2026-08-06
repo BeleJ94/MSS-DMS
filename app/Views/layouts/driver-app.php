@@ -22,6 +22,8 @@ $user = Auth::user();
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/driver-location.css">
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/driver-pod.css">
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/driver-incident.css">
+    <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/typography.css?v=20260806-1">
+    <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/modal-actions.css?v=20260806-2">
 </head>
 <body>
 <div class="mobile-app">

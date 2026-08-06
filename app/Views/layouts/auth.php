@@ -11,9 +11,9 @@ $baseUrl = rtrim((string) Env::get('APP_URL', ''), '/');
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/app.css">
+    <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/typography.css?v=20260806-1">
 </head>
 <body class="auth-body"><?= $content ?>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script>if(window.lucide){window.lucide.createIcons({attrs:{'stroke-width':1.8}});}</script>
 </body></html>
-
