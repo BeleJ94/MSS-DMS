@@ -7,6 +7,7 @@ function expect(condition, message) {
 }
 
 const storage = {};
+const indexedPositions = new Map();
 let gpsCalls = 0;
 let sentPayload = null;
 const sentPayloads = [];
@@ -39,7 +40,26 @@ const context = {
         setItem: (key, value) => { storage[key] = String(value); },
         removeItem: key => { delete storage[key]; }
     },
-    indexedDB: { open: function () { throw new Error('IndexedDB unavailable'); } },
+    indexedDB: { open: function () {
+        const request = {};
+        setTimeout(function () {
+            request.result = {
+                objectStoreNames: { contains: () => true },
+                transaction: function () {
+                    const tx = { error: null, objectStore: function () { return {
+                        put: row => indexedPositions.set(row.position_id, Object.assign({}, row)),
+                        delete: key => indexedPositions.delete(key),
+                        getAll: function () { const read = {}; setTimeout(function () { read.result = Array.from(indexedPositions.values()); if (read.onsuccess) read.onsuccess(); }, 0); return read; }
+                    }; } };
+                    setTimeout(function () { if (tx.oncomplete) tx.oncomplete(); }, 0);
+                    return tx;
+                },
+                close: function () {}
+            };
+            if (request.onsuccess) request.onsuccess();
+        }, 0);
+        return request;
+    } },
     navigator: {
         onLine: true,
         permissions: { query: () => Promise.resolve({ state: 'denied', onchange: null }) },
@@ -78,7 +98,8 @@ vm.runInNewContext(fs.readFileSync(__dirname + '/../public/assets/js/driver-trac
     await context.MSSGps.begin(42, position);
     expect(context.MSSGps.isActive(), 'le tracking démarre pour la mission active');
     context.navigator.onLine = false;
-    expect(await context.MSSGps.flush(), 'la synchronisation fonctionne sans IndexedDB');
+    expect(await context.MSSGps.flush(), 'la file IndexedDB est relue et synchronisée');
+    expect(indexedPositions.size === 0, 'la position confirmée est retirée d’IndexedDB');
     expect(sentPayload !== null, 'un faux état navigateur hors ligne ne bloque pas l’envoi');
     expect(sentPayload && sentPayload.url === '/mss/api/driver-app/missions/42/positions', 'la bonne API de mission est appelée');
     expect(sentPayload.body.positions.length === 1 && sentPayload.body._token === 'test-token', 'la position et le jeton CSRF sont envoyés');

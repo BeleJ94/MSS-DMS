@@ -28,11 +28,18 @@ final class GpsTracking
             $missionStatement->execute(['delivery'=>$deliveryId,'user'=>Auth::id()]);$mission=$missionStatement->fetch();
             if(!$mission){throw new RuntimeException('Mission introuvable ou non autorisée.');}
             if(!in_array($mission['status'],self::ACTIVE_STATUSES,true)){throw new RuntimeException('Le tracking est fermé pour cette mission.');}
-            $sql='INSERT INTO delivery_gps_positions (delivery_id,driver_id,device_position_id,latitude,longitude,accuracy_m,altitude_m,speed_mps,heading_deg,captured_at,source) VALUES (:delivery,:driver,:position_id,:latitude,:longitude,:accuracy,:altitude,:speed,:heading,:captured_at,:source) ON DUPLICATE KEY UPDATE device_position_id=VALUES(device_position_id)';
+            $sql='INSERT INTO delivery_gps_positions (delivery_id,driver_id,device_position_id,latitude,longitude,accuracy_m,altitude_m,speed_mps,heading_deg,captured_at,source) VALUES (:delivery,:driver,:position_id,:latitude,:longitude,:accuracy,:altitude,:speed,:heading,:captured_at,:source)';
             $insert=$pdo->prepare($sql);$accepted=0;$duplicates=0;$recordedIds=[];$duplicateIds=[];$normalizedSource=in_array($source,['pwa','native-ios','native-android'],true)?$source:'pwa';
             foreach($validated as $position){
-                $insert->execute(['delivery'=>$deliveryId,'driver'=>$mission['driver_id'],'position_id'=>$position['position_id'],'latitude'=>$position['latitude'],'longitude'=>$position['longitude'],'accuracy'=>$position['accuracy'],'altitude'=>$position['altitude'],'speed'=>$position['speed'],'heading'=>$position['heading'],'captured_at'=>$position['captured_at'],'source'=>$normalizedSource]);
-                if($insert->rowCount()===1){$accepted++;$recordedIds[]=$position['position_id'];}else{$duplicates++;$duplicateIds[]=$position['position_id'];}
+                try{
+                    $insert->execute(['delivery'=>$deliveryId,'driver'=>$mission['driver_id'],'position_id'=>$position['position_id'],'latitude'=>$position['latitude'],'longitude'=>$position['longitude'],'accuracy'=>$position['accuracy'],'altitude'=>$position['altitude'],'speed'=>$position['speed'],'heading'=>$position['heading'],'captured_at'=>$position['captured_at'],'source'=>$normalizedSource]);
+                    $accepted++;$recordedIds[]=$position['position_id'];
+                }catch(\PDOException $exception){
+                    if($exception->getCode()!=='23000'){throw $exception;}
+                    $exact=$pdo->prepare('SELECT COUNT(*) FROM delivery_gps_positions WHERE delivery_id=:delivery AND driver_id=:driver AND device_position_id=:position_id');$exact->execute(['delivery'=>$deliveryId,'driver'=>$mission['driver_id'],'position_id'=>$position['position_id']]);
+                    if(!(int)$exact->fetchColumn()){throw new RuntimeException('Structure GPS incohérente : une contrainte unique empêche plusieurs positions pour cette livraison.');}
+                    $duplicates++;$duplicateIds[]=$position['position_id'];
+                }
             }
             $pdo->commit();
             $positionIds=array_column($validated,'position_id');$placeholders=implode(',',array_fill(0,count($positionIds),'?'));
@@ -45,7 +52,12 @@ final class GpsTracking
 
     public static function recentOwned(int $deliveryId,int $limit=60): array
     {
-        $limit=max(10,min(100,$limit));$pdo=Database::connection();$owned=$pdo->prepare('SELECT COUNT(*) FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id WHERE d.id=:delivery AND dr.user_id=:user');$owned->execute(['delivery'=>$deliveryId,'user'=>Auth::id()]);if(!(int)$owned->fetchColumn()){throw new RuntimeException('Mission introuvable ou non autorisée.');}$count=$pdo->prepare('SELECT COUNT(*) FROM delivery_gps_positions WHERE delivery_id=:delivery');$count->execute(['delivery'=>$deliveryId]);$positions=$pdo->prepare('SELECT device_position_id,latitude,longitude,accuracy_m,captured_at,received_at,source FROM delivery_gps_positions WHERE delivery_id=:delivery ORDER BY captured_at DESC,id DESC LIMIT '.$limit);$positions->execute(['delivery'=>$deliveryId]);return ['total_positions'=>(int)$count->fetchColumn(),'positions'=>$positions->fetchAll(),'server_time'=>gmdate('c')];
+        $limit=max(10,min(100,$limit));$pdo=Database::connection();$owned=$pdo->prepare('SELECT COUNT(*) FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id WHERE d.id=:delivery AND dr.user_id=:user');$owned->execute(['delivery'=>$deliveryId,'user'=>Auth::id()]);if(!(int)$owned->fetchColumn()){throw new RuntimeException('Mission introuvable ou non autorisée.');}$count=$pdo->prepare('SELECT COUNT(*) FROM delivery_gps_positions WHERE delivery_id=:delivery');$count->execute(['delivery'=>$deliveryId]);$positions=$pdo->prepare('SELECT device_position_id,latitude,longitude,accuracy_m,captured_at,received_at,source FROM delivery_gps_positions WHERE delivery_id=:delivery ORDER BY captured_at DESC,id DESC LIMIT '.$limit);$positions->execute(['delivery'=>$deliveryId]);return ['total_positions'=>(int)$count->fetchColumn(),'positions'=>$positions->fetchAll(),'server_time'=>gmdate('c'),'schema'=>self::schemaAudit($pdo)];
+    }
+
+    private static function schemaAudit(\PDO $pdo): array
+    {
+        $sql="SELECT index_name,GROUP_CONCAT(column_name ORDER BY seq_in_index SEPARATOR ',') columns_list FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='delivery_gps_positions' AND non_unique=0 AND index_name<>'PRIMARY' GROUP BY index_name ORDER BY index_name";$indexes=$pdo->query($sql)->fetchAll();$valid=count($indexes)===1&&($indexes[0]['columns_list']??'')==='delivery_id,driver_id,device_position_id';return ['valid'=>$valid,'unique_indexes'=>$indexes];
     }
 
     private static function validate(array $p): array
