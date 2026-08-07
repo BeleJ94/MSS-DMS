@@ -34,8 +34,12 @@ final class GpsTracking
                 $insert->execute(['delivery'=>$deliveryId,'driver'=>$mission['driver_id'],'position_id'=>$position['position_id'],'latitude'=>$position['latitude'],'longitude'=>$position['longitude'],'accuracy'=>$position['accuracy'],'altitude'=>$position['altitude'],'speed'=>$position['speed'],'heading'=>$position['heading'],'captured_at'=>$position['captured_at'],'source'=>$normalizedSource]);
                 if($insert->rowCount()===1){$accepted++;$recordedIds[]=$position['position_id'];}else{$duplicates++;$duplicateIds[]=$position['position_id'];}
             }
-            $count=$pdo->prepare('SELECT COUNT(*) FROM delivery_gps_positions WHERE delivery_id=:delivery');$count->execute(['delivery'=>$deliveryId]);$total=(int)$count->fetchColumn();$pdo->commit();
-            return ['accepted'=>$accepted,'duplicates'=>$duplicates,'total_positions'=>$total,'recorded_ids'=>$recordedIds,'duplicate_ids'=>$duplicateIds,'status'=>$mission['status']];
+            $pdo->commit();
+            $positionIds=array_column($validated,'position_id');$placeholders=implode(',',array_fill(0,count($positionIds),'?'));
+            $verify=$pdo->prepare('SELECT device_position_id FROM delivery_gps_positions WHERE delivery_id=? AND driver_id=? AND device_position_id IN ('.$placeholders.')');$verify->execute(array_merge([$deliveryId,(int)$mission['driver_id']],$positionIds));$persistedIds=array_map('strval',$verify->fetchAll(\PDO::FETCH_COLUMN));
+            $count=$pdo->prepare('SELECT COUNT(*) FROM delivery_gps_positions WHERE delivery_id=:delivery');$count->execute(['delivery'=>$deliveryId]);$total=(int)$count->fetchColumn();
+            if(count($persistedIds)!==count($positionIds)){throw new RuntimeException('La base n’a pas confirmé toutes les positions après validation de la transaction.');}
+            return ['accepted'=>$accepted,'duplicates'=>$duplicates,'total_positions'=>$total,'recorded_ids'=>$recordedIds,'duplicate_ids'=>$duplicateIds,'persisted_ids'=>$persistedIds,'status'=>$mission['status']];
         }catch(\Throwable $e){if($pdo->inTransaction()){$pdo->rollBack();}throw $e;}
     }
 

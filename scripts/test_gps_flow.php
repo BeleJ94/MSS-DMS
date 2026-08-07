@@ -70,6 +70,7 @@ try {
     expectGps($first['accepted'] === 1, 'la première position est acceptée');
     expectGps($first['total_positions'] === 1, 'le serveur confirme le total après la première position');
     expectGps($first['recorded_ids'] === [$positionId], 'le serveur confirme précisément l’identifiant inséré');
+    expectGps($first['persisted_ids'] === [$positionId], 'l’identifiant est relu après validation de la transaction');
     $duplicate = GpsTracking::recordBatch($deliveryId, [$position]);
     expectGps($duplicate['duplicates'] === 1, 'une retransmission hors ligne est dédupliquée');
     expectGps($duplicate['duplicate_ids'] === [$positionId], 'le serveur identifie précisément le doublon');

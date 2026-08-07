@@ -59,7 +59,8 @@ const context = {
     fetch: function (url, options) {
         sentPayload = { url, body: JSON.parse(options.body) };
         sentPayloads.push(sentPayload);
-        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ success: true, data: { accepted: 1 } }) });
+        const ids = sentPayload.body.positions.map(row => row.position_id);
+        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ success: true, data: { accepted: ids.length, duplicates: 0, total_positions: ids.length, recorded_ids: ids, duplicate_ids: [], persisted_ids: ids } }) });
     },
     addEventListener: function (name, callback) { listeners[name] = callback; },
     dispatchEvent: function () {}
