@@ -59,10 +59,10 @@ $user = Auth::user();
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-<script>window.MSS_DRIVER_APP=<?= json_encode(['baseUrl' => $baseUrl, 'csrf' => Csrf::token(), 'activeMissionId' => (int) ($activeMissionId ?? 0)], JSON_UNESCAPED_SLASHES) ?>;</script>
-<script src="<?= $baseUrl ?>/assets/js/driver-tracking.js?v=20260807-3"></script>
-<script src="<?= $baseUrl ?>/assets/js/driver-app.js?v=20260807-3"></script>
-<script src="<?= $baseUrl ?>/assets/js/driver-gps-diagnostics.js?v=20260807-3"></script>
+<script>window.MSS_DRIVER_APP=<?= json_encode(['baseUrl' => $baseUrl, 'csrf' => Csrf::token(), 'activeMissionId' => (int) ($activeMissionId ?? 0), 'build' => '20260807-4'], JSON_UNESCAPED_SLASHES) ?>;</script>
+<script src="<?= $baseUrl ?>/assets/js/driver-tracking.js?v=20260807-4"></script>
+<script src="<?= $baseUrl ?>/assets/js/driver-app.js?v=20260807-4"></script>
+<script src="<?= $baseUrl ?>/assets/js/driver-gps-diagnostics.js?v=20260807-4"></script>
 <script src="<?= $baseUrl ?>/assets/js/driver-pod.js"></script>
 <script src="<?= $baseUrl ?>/assets/js/driver-incident.js"></script>
 </body>

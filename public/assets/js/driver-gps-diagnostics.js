@@ -3,6 +3,7 @@
     var panel=document.getElementById('gpsAudit');if(!panel)return;
     var cfg=global.MSS_DRIVER_APP||{},base=cfg.baseUrl||'',missionId=Number(panel.getAttribute('data-mission-id')||0),rows={},serverIds={},captured=0,rejected=0,serverTotal=0,timer=null,historyInFlight=null;
     var list=document.getElementById('gpsAuditList'),state=document.getElementById('gpsAuditState');
+    var build=document.getElementById('gpsBuildVersion');if(build)build.textContent='Version GPS '+(cfg.build||'ancienne')+'.';
     function text(id,value){var el=document.getElementById(id);if(el)el.textContent=String(value);}
     function clock(value){if(!value)return '—';var date=new Date(String(value).replace(' ','T')+(String(value).indexOf('Z')<0?'Z':''));return isNaN(date.getTime())?value:date.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
     function coordinates(row){return Number(row.latitude).toFixed(5)+', '+Number(row.longitude).toFixed(5);}
