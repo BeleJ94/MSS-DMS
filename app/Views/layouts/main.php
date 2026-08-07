@@ -107,7 +107,7 @@ $errorMessage = Session::pull('error');
 <?php if (($page ?? '') === 'incidents'): ?><script src="<?= $baseUrl ?>/assets/js/incidents.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'dispatching'): ?><script src="<?= $baseUrl ?>/assets/js/dispatching.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'planning'): ?><script src="<?= $baseUrl ?>/assets/js/planning.js?v=20260805-1"></script><?php endif; ?>
-<?php if (($page ?? '') === 'live-tracking'): ?><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script><script src="<?= $baseUrl ?>/assets/js/live-tracking.js?v=20260807-1"></script><?php endif; ?>
+<?php if (($page ?? '') === 'live-tracking'): ?><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script><script src="<?= $baseUrl ?>/assets/js/live-tracking.js?v=20260807-2"></script><?php endif; ?>
 <?php if (!empty($usesLeaflet)): ?><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script><script src="<?= $baseUrl ?>/assets/js/route-history.js?v=20260805-1"></script><?php endif; ?>
 </body>
 </html>
