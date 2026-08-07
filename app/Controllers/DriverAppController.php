@@ -35,5 +35,9 @@ final class DriverAppController extends Controller
     {
         if(!Auth::can('driver_app.access')){return $this->json(['success'=>false,'message'=>'Accès refusé.'],403);}try{$positions=$request->input('positions',[]);if(!is_array($positions)){throw new RuntimeException('Format de positions invalide.');}$result=GpsTracking::recordBatch((int)$request->param('id'),$positions,(string)$request->input('source','pwa'));return $this->json(['success'=>true,'data'=>$result]);}catch(Throwable $e){return $this->json(['success'=>false,'message'=>$e instanceof RuntimeException?$e->getMessage():'Enregistrement GPS impossible.'],422);}
     }
+    public function positionHistory(Request $request): Response
+    {
+        if(!Auth::can('driver_app.access')){return $this->json(['success'=>false,'message'=>'Accès refusé.'],403);}try{return $this->json(['success'=>true,'data'=>GpsTracking::recentOwned((int)$request->param('id'))]);}catch(Throwable $e){return $this->json(['success'=>false,'message'=>$e instanceof RuntimeException?$e->getMessage():'Historique GPS indisponible.'],422);}
+    }
     private function baseUrl(): string{return rtrim((string)Env::get('APP_URL',''),'/');}
 }

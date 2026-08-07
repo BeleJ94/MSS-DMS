@@ -77,6 +77,7 @@ $app->router()->get('/driver-app', [DriverAppController::class, 'index'], [Authe
 $app->router()->get('/driver-app/missions/{id}', [DriverAppController::class, 'show'], [Authenticate::class]);
 $app->router()->post('/api/driver-app/missions/{id}/action', [DriverAppController::class, 'action'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->post('/api/driver-app/missions/{id}/positions', [DriverAppController::class, 'positions'], [Authenticate::class, VerifyCsrf::class]);
+$app->router()->get('/api/driver-app/missions/{id}/positions', [DriverAppController::class, 'positionHistory'], [Authenticate::class]);
 $app->router()->post('/api/driver-app/missions/{id}/pod', [PodController::class, 'store'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->post('/api/driver-app/missions/{id}/incident', [IncidentController::class, 'report'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->get('/deliveries/{id}/pod.pdf', [PodController::class, 'pdf'], [Authenticate::class]);
