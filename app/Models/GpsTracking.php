@@ -21,8 +21,22 @@ final class GpsTracking
 
     public static function recordBatch(int $deliveryId,array $positions,string $source='pwa'): array
     {
-        if($positions===[]||count($positions)>100){throw new RuntimeException('Le lot doit contenir entre 1 et 100 positions.');}$pdo=Database::connection();$s=$pdo->prepare('SELECT d.id,d.driver_id,d.status FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id WHERE d.id=:delivery AND dr.user_id=:user');$s->execute(['delivery'=>$deliveryId,'user'=>Auth::id()]);$mission=$s->fetch();if(!$mission){throw new RuntimeException('Mission introuvable ou non autorisée.');}if(!in_array($mission['status'],self::ACTIVE_STATUSES,true)){throw new RuntimeException('Le tracking est fermé pour cette mission.');}
-        $insert=$pdo->prepare('INSERT IGNORE INTO delivery_gps_positions (delivery_id,driver_id,device_position_id,latitude,longitude,accuracy_m,altitude_m,speed_mps,heading_deg,captured_at,source) VALUES (:delivery,:driver,:position_id,:latitude,:longitude,:accuracy,:altitude,:speed,:heading,:captured_at,:source)');$accepted=0;$duplicates=0;$recordedIds=[];$duplicateIds=[];$pdo->beginTransaction();try{foreach($positions as $position){$p=self::validate($position);$insert->execute(['delivery'=>$deliveryId,'driver'=>$mission['driver_id'],'position_id'=>$p['position_id'],'latitude'=>$p['latitude'],'longitude'=>$p['longitude'],'accuracy'=>$p['accuracy'],'altitude'=>$p['altitude'],'speed'=>$p['speed'],'heading'=>$p['heading'],'captured_at'=>$p['captured_at'],'source'=>in_array($source,['pwa','native-ios','native-android'],true)?$source:'pwa']);if($insert->rowCount()){$accepted++;$recordedIds[]=$p['position_id'];}else{$duplicates++;$duplicateIds[]=$p['position_id'];}}$pdo->commit();$count=$pdo->prepare('SELECT COUNT(*) FROM delivery_gps_positions WHERE delivery_id=:delivery');$count->execute(['delivery'=>$deliveryId]);return ['accepted'=>$accepted,'duplicates'=>$duplicates,'total_positions'=>(int)$count->fetchColumn(),'recorded_ids'=>$recordedIds,'duplicate_ids'=>$duplicateIds,'status'=>$mission['status']];}catch(\Throwable $e){if($pdo->inTransaction()){$pdo->rollBack();}throw $e;}
+        if($positions===[]||count($positions)>100){throw new RuntimeException('Le lot doit contenir entre 1 et 100 positions.');}
+        $validated=array_map([self::class,'validate'],$positions);$pdo=Database::connection();$pdo->beginTransaction();
+        try{
+            $missionStatement=$pdo->prepare('SELECT d.id,d.driver_id,d.status FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id WHERE d.id=:delivery AND dr.user_id=:user FOR UPDATE');
+            $missionStatement->execute(['delivery'=>$deliveryId,'user'=>Auth::id()]);$mission=$missionStatement->fetch();
+            if(!$mission){throw new RuntimeException('Mission introuvable ou non autorisée.');}
+            if(!in_array($mission['status'],self::ACTIVE_STATUSES,true)){throw new RuntimeException('Le tracking est fermé pour cette mission.');}
+            $sql='INSERT INTO delivery_gps_positions (delivery_id,driver_id,device_position_id,latitude,longitude,accuracy_m,altitude_m,speed_mps,heading_deg,captured_at,source) VALUES (:delivery,:driver,:position_id,:latitude,:longitude,:accuracy,:altitude,:speed,:heading,:captured_at,:source) ON DUPLICATE KEY UPDATE device_position_id=VALUES(device_position_id)';
+            $insert=$pdo->prepare($sql);$accepted=0;$duplicates=0;$recordedIds=[];$duplicateIds=[];$normalizedSource=in_array($source,['pwa','native-ios','native-android'],true)?$source:'pwa';
+            foreach($validated as $position){
+                $insert->execute(['delivery'=>$deliveryId,'driver'=>$mission['driver_id'],'position_id'=>$position['position_id'],'latitude'=>$position['latitude'],'longitude'=>$position['longitude'],'accuracy'=>$position['accuracy'],'altitude'=>$position['altitude'],'speed'=>$position['speed'],'heading'=>$position['heading'],'captured_at'=>$position['captured_at'],'source'=>$normalizedSource]);
+                if($insert->rowCount()===1){$accepted++;$recordedIds[]=$position['position_id'];}else{$duplicates++;$duplicateIds[]=$position['position_id'];}
+            }
+            $count=$pdo->prepare('SELECT COUNT(*) FROM delivery_gps_positions WHERE delivery_id=:delivery');$count->execute(['delivery'=>$deliveryId]);$total=(int)$count->fetchColumn();$pdo->commit();
+            return ['accepted'=>$accepted,'duplicates'=>$duplicates,'total_positions'=>$total,'recorded_ids'=>$recordedIds,'duplicate_ids'=>$duplicateIds,'status'=>$mission['status']];
+        }catch(\Throwable $e){if($pdo->inTransaction()){$pdo->rollBack();}throw $e;}
     }
 
     public static function recentOwned(int $deliveryId,int $limit=60): array

@@ -69,8 +69,10 @@ try {
     $first = GpsTracking::recordBatch($deliveryId, [$position]);
     expectGps($first['accepted'] === 1, 'la première position est acceptée');
     expectGps($first['total_positions'] === 1, 'le serveur confirme le total après la première position');
+    expectGps($first['recorded_ids'] === [$positionId], 'le serveur confirme précisément l’identifiant inséré');
     $duplicate = GpsTracking::recordBatch($deliveryId, [$position]);
     expectGps($duplicate['duplicates'] === 1, 'une retransmission hors ligne est dédupliquée');
+    expectGps($duplicate['duplicate_ids'] === [$positionId], 'le serveur identifie précisément le doublon');
     $stored = $pdo->query('SELECT * FROM delivery_gps_positions WHERE delivery_id=' . $deliveryId)->fetch();
     expectGps($stored && abs((float) $stored['latitude'] - (-11.6647)) < 0.00001, 'les coordonnées GPS sont persistées');
     expectGps($stored && $stored['source'] === 'pwa', 'la source PWA est conservée');
@@ -105,6 +107,17 @@ try {
     expectGps($second['total_positions'] === 6, 'le serveur confirme six positions distinctes pour la mission en cours');
     $storedCount = (int) $pdo->query('SELECT COUNT(*) FROM delivery_gps_positions WHERE delivery_id=' . $deliveryId)->fetchColumn();
     expectGps($storedCount === 6, 'les six positions sont réellement présentes dans la base');
+    try {
+        GpsTracking::recordBatch($deliveryId, [
+            array_merge($position, ['position_id' => $positionId . '-rollback-valid']),
+            array_merge($position, ['position_id' => $positionId . '-rollback-invalid', 'latitude' => 120]),
+        ]);
+        throw new RuntimeException('Le lot invalide aurait dû être refusé.');
+    } catch (RuntimeException $exception) {
+        expectGps(strpos($exception->getMessage(), 'position GPS est invalide') !== false, 'un lot contenant une position invalide est refusé');
+    }
+    $countAfterRollback = (int) $pdo->query('SELECT COUNT(*) FROM delivery_gps_positions WHERE delivery_id=' . $deliveryId)->fetchColumn();
+    expectGps($countAfterRollback === 6, 'un lot invalide ne produit aucune insertion partielle');
     $route = DeliveryRouteHistory::forDelivery($deliveryId);
     expectGps($route !== null && $route['summary']['position_count'] === 6, 'l’historique restitue toutes les positions du trajet');
     expectGps($route['summary']['distance_km'] > 0, 'la distance historique est calculée');
