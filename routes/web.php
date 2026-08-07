@@ -89,4 +89,5 @@ $app->router()->post('/api/incidents/{id}', [IncidentController::class, 'update'
 $app->router()->post('/api/incidents/{id}/resolve', [IncidentController::class, 'resolve'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->get('/live-tracking', [LiveTrackingController::class, 'index'], [Authenticate::class]);
 $app->router()->get('/api/live-tracking', [LiveTrackingController::class, 'data'], [Authenticate::class]);
+$app->router()->get('/api/live-tracking/{id}/route', [LiveTrackingController::class, 'route'], [Authenticate::class]);
 $app->router()->get('/api/health', [HomeController::class, 'health']);
