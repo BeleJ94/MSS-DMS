@@ -64,3 +64,4 @@ echo "GPS_PERSISTENT_OK\n";
 echo "delivery_id={$deliveryId}\nreference={$reference}\npositions={$count}\n";
 echo 'distance_km='.number_format((float)$route['summary']['distance_km'],3,'.','')."\n";
 echo "status=En transit\nlive_tracking=visible\n";
+
