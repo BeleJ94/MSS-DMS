@@ -32,5 +32,9 @@ try{
     expectMulti(count($delivery['goods'])===2&&(int)$delivery['goods'][0]['destination_order']===1&&(int)$delivery['goods'][1]['destination_order']===2,'les marchandises sont affectées à leurs destinations');
     $listed=array_values(array_filter(Delivery::listing(['search'=>'Entrepôt Nord']),function(array $row)use($deliveryId):bool{return(int)$row['id']===$deliveryId;}));
     expectMulti(count($listed)===1&&(int)$listed[0]['destination_count']===2,'la recherche et la liste exposent la course multi-destinations');
+    expectMulti($listed[0]['first_destination']['label']==='Entrepôt Nord'&&$listed[0]['last_destination']['label']==='Agence Centre','la liste expose clairement le début et la fin de l’itinéraire');
+    expectMulti($listed[0]['current_destination']['label']==='Entrepôt Nord'&&(int)$listed[0]['current_destination']['stop_order']===1,'le prochain arrêt opérationnel est identifié');
+    expectMulti((int)$listed[0]['destinations'][0]['goods_count']===1&&(int)$listed[0]['destinations'][1]['goods_count']===1,'la répartition des marchandises est disponible par destination');
+    $searchedBySecondStop=array_values(array_filter(Delivery::listing(['search'=>'Agence Centre']),function(array $row)use($deliveryId):bool{return(int)$row['id']===$deliveryId;}));expectMulti(count($searchedBySecondStop)===1,'la recherche retrouve aussi une destination autre que la première');
     echo "MULTI_DESTINATION_FLOW_OK\n";
 }finally{if($deliveryId){$pdo->prepare('DELETE FROM deliveries WHERE id=:id')->execute(['id'=>$deliveryId]);}}
