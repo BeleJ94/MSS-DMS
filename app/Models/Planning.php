@@ -14,7 +14,7 @@ use Throwable;
 final class Planning
 {
     private const EDITABLE = ['Brouillon', 'Affectée'];
-    private const OCCUPYING = ['Brouillon', 'Affectée', 'À préparer', 'Prête', 'Chargement', 'Chargée', 'Partie', 'En transit', 'Arrivée', 'Incident'];
+    private const OCCUPYING = ['Brouillon', 'Affectée', 'À préparer', 'Prête', 'Chargement', 'Chargée', 'Partie', 'En transit', 'Arrivée', 'Déchargement', 'Incident'];
 
     public static function entries(array $filters): array
     {

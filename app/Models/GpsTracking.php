@@ -12,7 +12,7 @@ use RuntimeException;
 
 final class GpsTracking
 {
-    public const ACTIVE_STATUSES=['Partie','En transit','Arrivée','Incident'];
+    public const ACTIVE_STATUSES=['Partie','En transit','Arrivée','Déchargement','Incident'];
 
     public static function activeMissionId(): ?int
     {

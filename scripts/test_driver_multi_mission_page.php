@@ -18,5 +18,5 @@ expectDriverMulti(substr_count($html,'data-mission-id=')===3,'chaque livraison p
 expectDriverMulti(strpos($html,'data-mission-id="901"')!==false&&strpos($html,'data-mission-id="902"')!==false,'plusieurs livraisons affectées sont pilotables séparément');
 expectDriverMulti(strpos($html,'data-mission-action="start"')!==false,'une livraison chargée peut être démarrée depuis la liste');
 expectDriverMulti(strpos($html,'data-mission-action="arrive"')!==false,'une livraison en transit peut être marquée arrivée depuis la liste');
-expectDriverMulti(strpos($html,'Faire signer')!==false,'une livraison arrivée ouvre sa preuve de livraison');
+expectDriverMulti(strpos($html,'déchargement')!==false,'une livraison arrivée propose d’abord le déchargement');
 echo "DRIVER_MULTI_MISSION_PAGE_OK\n";

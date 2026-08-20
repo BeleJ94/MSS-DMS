@@ -3,9 +3,9 @@ $maps = $mission['latitude'] && $mission['longitude']
     ? 'https://www.google.com/maps/dir/?api=1&destination='.rawurlencode($mission['latitude'].','.$mission['longitude'])
     : 'https://www.google.com/maps/search/?api=1&query='.rawurlencode($mission['site_address'].', '.$mission['site_city']);
 $nextAction=App\Models\DriverMission::nextAction($mission['status']);
-$stageClasses=['Brouillon'=>'assigned','Affectée'=>'assigned','À préparer'=>'preparation','Prête'=>'ready','Chargement'=>'loading','Chargée'=>'loaded','Partie'=>'transit','En transit'=>'transit','Arrivée'=>'arrived','Incident'=>'incident','Livrée'=>'completed','Clôturée'=>'completed'];$stageClass=$stageClasses[$mission['status']]??'assigned';
-$driverStages=['Affectée','À préparer','Prête','Chargement','Chargée','En transit','Livrée'];
-$driverStageStatus=$mission['status']==='Brouillon'?'Affectée':(in_array($mission['status'],['Partie','Arrivée'],true)?'En transit':$mission['status']);
+$stageClasses=['Brouillon'=>'assigned','Affectée'=>'assigned','À préparer'=>'preparation','Prête'=>'ready','Chargement'=>'loading','Chargée'=>'loaded','Partie'=>'transit','En transit'=>'transit','Arrivée'=>'arrived','Déchargement'=>'unloading','Incident'=>'incident','Livrée'=>'completed','Clôturée'=>'completed'];$stageClass=$stageClasses[$mission['status']]??'assigned';
+$driverStages=['Affectée','À préparer','Prête','Chargement','Chargée','En transit','Arrivée','Déchargement','Livrée'];
+$driverStageStatus=$mission['status']==='Brouillon'?'Affectée':($mission['status']==='Partie'?'En transit':$mission['status']);
 $driverStageIndex=array_search($driverStageStatus,$driverStages,true);
 ?>
 <a class="mobile-back" href="<?= $baseUrl ?>/driver-app"><i data-lucide="arrow-left"></i> Mes missions</a>
@@ -27,9 +27,15 @@ $driverStageIndex=array_search($driverStageStatus,$driverStages,true);
         <div class="mobile-contact"><span><i data-lucide="user-round"></i></span><div><strong><?= htmlspecialchars($mission['contact_name'], ENT_QUOTES, 'UTF-8') ?></strong><small><?= htmlspecialchars($mission['contact_phone'] ?: $mission['contact_email'], ENT_QUOTES, 'UTF-8') ?></small></div><?php if ($mission['contact_phone']): ?><a href="tel:<?= htmlspecialchars($mission['contact_phone'], ENT_QUOTES, 'UTF-8') ?>"><i data-lucide="phone"></i></a><?php endif; ?></div>
     <?php else: ?><p class="muted">Aucun contact renseigné.</p><?php endif; ?>
 </section>
-<section class="mobile-card">
+<section class="mobile-card <?= $mission['status']==='Déchargement'?'unloading-card':'' ?>">
     <small>MARCHANDISES</small>
-    <ul class="mobile-goods"><?php foreach ($mission['goods'] as $goods): ?><li><span><?= htmlspecialchars($goods['description_snapshot'], ENT_QUOTES, 'UTF-8') ?></span><strong><?= htmlspecialchars($goods['quantity'].' '.$goods['unit'], ENT_QUOTES, 'UTF-8') ?></strong></li><?php endforeach; ?><?php if (!$mission['goods']): ?><li><span>Aucune ligne renseignée</span></li><?php endif; ?></ul>
+    <?php if($mission['status']==='Déchargement'): ?>
+    <form class="unloading-form" data-unloading-form data-mission-id="<?= (int)$mission['id'] ?>">
+        <div class="unloading-head"><div><h2>Contrôlez ce qui est remis</h2><p>Une touche par marchandise. Signalez uniquement les écarts.</p></div><button type="button" data-all-conform><i data-lucide="check-check"></i> Tout est conforme</button></div>
+        <div class="unloading-list"><?php foreach($mission['goods'] as $goods): $planned=(float)$goods['quantity']; ?><article class="unloading-item <?= $goods['checked_at']?'is-checked':'' ?>" data-goods-id="<?= (int)$goods['id'] ?>" data-planned="<?= htmlspecialchars((string)$planned,ENT_QUOTES,'UTF-8') ?>"><header><span><i data-lucide="package"></i></span><div><strong><?= htmlspecialchars($goods['description_snapshot'],ENT_QUOTES,'UTF-8') ?></strong><small>Prévu : <?= htmlspecialchars($goods['quantity'].' '.$goods['unit'],ENT_QUOTES,'UTF-8') ?></small></div><b data-line-state><?= $goods['checked_at']?'<i data-lucide="check"></i>':'' ?></b></header><div class="unloading-quantity"><span>Quantité remise</span><div><button type="button" data-qty-minus aria-label="Diminuer">−</button><input inputmode="decimal" data-delivered-quantity value="<?= htmlspecialchars((string)($goods['delivered_quantity']??$goods['quantity']),ENT_QUOTES,'UTF-8') ?>" aria-label="Quantité remise"><em><?= htmlspecialchars($goods['unit'],ENT_QUOTES,'UTF-8') ?></em><button type="button" data-qty-plus aria-label="Augmenter">+</button></div></div><div class="unloading-conditions" role="group" aria-label="État de la marchandise"><?php foreach(['Conforme','Partielle','Endommagée','Refusée','Manquante'] as $condition): ?><button type="button" data-condition="<?= $condition ?>" class="<?= $goods['delivery_condition']===$condition?'active':'' ?>"><?= $condition ?></button><?php endforeach; ?></div><label class="unloading-note" <?= (!$goods['delivery_condition']||$goods['delivery_condition']==='Conforme')?'hidden':'' ?>><span>Expliquez l’écart *</span><textarea maxlength="500" rows="2" placeholder="Ex. 1 colis endommagé…" data-driver-note><?= htmlspecialchars((string)$goods['driver_note'],ENT_QUOTES,'UTF-8') ?></textarea></label></article><?php endforeach; ?></div>
+        <button class="unloading-submit" type="submit"><i data-lucide="clipboard-check"></i><span>Valider le déchargement</span></button>
+    </form>
+    <?php else: ?><ul class="mobile-goods"><?php foreach ($mission['goods'] as $goods): ?><li><span><?= htmlspecialchars($goods['description_snapshot'], ENT_QUOTES, 'UTF-8') ?></span><strong><?= htmlspecialchars($goods['quantity'].' '.$goods['unit'], ENT_QUOTES, 'UTF-8') ?></strong></li><?php endforeach; ?><?php if (!$mission['goods']): ?><li><span>Aucune ligne renseignée</span></li><?php endif; ?></ul><?php endif; ?>
 </section>
 <?php if ($mission['delivery_instructions']): ?><section class="mobile-card instruction"><i data-lucide="info"></i><div><small>INSTRUCTIONS</small><p><?= nl2br(htmlspecialchars($mission['delivery_instructions'], ENT_QUOTES, 'UTF-8')) ?></p></div></section><?php endif; ?>
 <section class="mobile-card gps-audit" id="gpsAudit" data-mission-id="<?= (int)$mission['id'] ?>">
@@ -42,12 +48,12 @@ $driverStageIndex=array_search($driverStageStatus,$driverStages,true);
 <?php foreach($pods as $completedPod): ?><section class="mobile-card pod-complete-card"><span><i data-lucide="badge-check"></i></span><div><small>DESTINATION <?= (int)$completedPod['stop_order'] ?> · BON DE LIVRAISON</small><strong><?= htmlspecialchars($completedPod['label'].' · '.$completedPod['recipient_name'],ENT_QUOTES,'UTF-8') ?></strong><p><?= date('d/m/Y à H:i',strtotime($completedPod['captured_at'])) ?></p></div><a href="<?= $baseUrl ?>/deliveries/<?= (int)$mission['id'] ?>/destinations/<?= (int)$completedPod['destination_id'] ?>/pod.pdf" target="_blank"><i data-lucide="file-down"></i> PDF</a></section><?php endforeach; ?>
 <section class="mission-actions" data-mission-id="<?= (int) $mission['id'] ?>">
     <?php if($nextAction): ?><div class="mission-next-action"><small>PROCHAINE ACTION</small><strong><?= htmlspecialchars($nextAction['label'],ENT_QUOTES,'UTF-8') ?></strong><p><?= $nextAction['action']==='start'?'Le suivi GPS sera activé au départ.':'Confirmez uniquement lorsque cette étape est réellement terminée.' ?></p></div><button class="primary" data-mission-action="<?= htmlspecialchars($nextAction['action'],ENT_QUOTES,'UTF-8') ?>"><i data-lucide="<?= htmlspecialchars($nextAction['icon'],ENT_QUOTES,'UTF-8') ?>"></i><?= htmlspecialchars($nextAction['label'],ENT_QUOTES,'UTF-8') ?></button><?php endif; ?>
-    <?php if ($mission['status'] === 'Arrivée'): ?><button class="primary success" type="button" data-pod-open><i data-lucide="signature"></i>Faire signer et livrer</button><?php endif; ?>
+    <?php if ($mission['status'] === 'Déchargement' && $mission['unloading_complete']): ?><button class="primary success" type="button" data-pod-open><i data-lucide="signature"></i>Faire signer et livrer</button><?php endif; ?>
     <?php if (!in_array($mission['status'], ['Incident', 'Livrée', 'Clôturée', 'Annulée'], true)): ?><button class="danger" type="button" data-incident-open><i data-lucide="triangle-alert"></i>Signaler un incident</button><?php endif; ?>
     <?php if ($mission['status']==='Incident'): ?><p class="waiting"><i data-lucide="clock-3"></i> La progression est suspendue pendant le traitement de l’incident par le bureau.</p><?php endif; ?>
 </section>
 
-<?php if ($mission['status'] === 'Arrivée'): ?>
+<?php if ($mission['status'] === 'Déchargement' && $mission['unloading_complete']): ?>
 <div class="pod-modal" id="podModal" hidden aria-hidden="true">
     <section class="pod-sheet" role="dialog" aria-modal="true" aria-labelledby="podTitle">
         <header><button type="button" data-pod-close aria-label="Fermer"><i data-lucide="x"></i></button><span>PREUVE DE LIVRAISON</span><h2 id="podTitle">Faire signer la réception</h2><p><?= htmlspecialchars($mission['reference'].' · '.$mission['company_name'], ENT_QUOTES, 'UTF-8') ?></p></header>

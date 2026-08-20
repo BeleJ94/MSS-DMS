@@ -13,7 +13,7 @@ use Throwable;
 final class Dispatching
 {
     private const ASSIGNABLE_STATUSES = ['Brouillon', 'Affectée'];
-    private const ACTIVE_STATUSES = ['Brouillon', 'Affectée', 'À préparer', 'Prête', 'Chargement', 'Chargée', 'Partie', 'En transit', 'Arrivée', 'Incident'];
+    private const ACTIVE_STATUSES = ['Brouillon', 'Affectée', 'À préparer', 'Prête', 'Chargement', 'Chargée', 'Partie', 'En transit', 'Arrivée', 'Déchargement', 'Incident'];
 
     public static function board(array $filters = []): array
     {

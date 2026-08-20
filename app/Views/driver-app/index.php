@@ -1,4 +1,4 @@
-<?php $stageClasses=['Brouillon'=>'assigned','Affectée'=>'assigned','À préparer'=>'preparation','Prête'=>'ready','Chargement'=>'loading','Chargée'=>'loaded','Partie'=>'transit','En transit'=>'transit','Arrivée'=>'arrived','Incident'=>'incident','Livrée'=>'completed','Clôturée'=>'completed']; ?>
+<?php $stageClasses=['Brouillon'=>'assigned','Affectée'=>'assigned','À préparer'=>'preparation','Prête'=>'ready','Chargement'=>'loading','Chargée'=>'loaded','Partie'=>'transit','En transit'=>'transit','Arrivée'=>'arrived','Déchargement'=>'unloading','Incident'=>'incident','Livrée'=>'completed','Clôturée'=>'completed']; ?>
 <section class="mobile-intro"><span><?= date('d/m/Y') ?></span><h1>Mes missions</h1><p>Gérez séparément les étapes de chaque livraison qui vous est affectée.</p></section>
 <?php if(!$driver): ?><section class="mobile-empty warning"><i data-lucide="user-round-x"></i><h2>Compte non associé</h2><p>Demandez à l’administrateur de relier votre compte à votre fiche chauffeur.</p></section><?php elseif(!$missions): ?><section class="mobile-empty"><i data-lucide="check-circle-2"></i><h2>Aucune mission</h2><p>Vos prochaines affectations apparaîtront ici.</p></section><?php else: ?>
 <div class="mission-list"><?php foreach($missions as $mission): ?>
@@ -13,7 +13,8 @@
     </a>
     <div class="mission-card-actions">
         <?php if($nextAction): ?><button type="button" class="mission-quick-action primary" data-mission-action="<?= htmlspecialchars($nextAction['action'],ENT_QUOTES,'UTF-8') ?>"><i data-lucide="<?= htmlspecialchars($nextAction['icon'],ENT_QUOTES,'UTF-8') ?>"></i> <?= htmlspecialchars($nextAction['label'],ENT_QUOTES,'UTF-8') ?></button>
-        <?php elseif($mission['status']==='Arrivée'): ?><a class="mission-quick-action success" href="<?= $baseUrl ?>/driver-app/missions/<?= (int)$mission['id'] ?>"><i data-lucide="signature"></i> Faire signer</a>
+        <?php elseif($mission['status']==='Arrivée'): ?><a class="mission-quick-action primary" href="<?= $baseUrl ?>/driver-app/missions/<?= (int)$mission['id'] ?>"><i data-lucide="package-open"></i> Décharger</a>
+        <?php elseif($mission['status']==='Déchargement'): ?><a class="mission-quick-action success" href="<?= $baseUrl ?>/driver-app/missions/<?= (int)$mission['id'] ?>"><i data-lucide="list-checks"></i> Contrôler</a>
         <?php elseif($mission['status']==='Incident'): ?><a class="mission-quick-action danger" href="<?= $baseUrl ?>/driver-app/missions/<?= (int)$mission['id'] ?>"><i data-lucide="triangle-alert"></i> Voir l’incident</a>
         <?php else: ?><a class="mission-quick-action neutral" href="<?= $baseUrl ?>/driver-app/missions/<?= (int)$mission['id'] ?>"><i data-lucide="eye"></i> Consulter</a><?php endif; ?>
     </div>
