@@ -16,6 +16,7 @@ use App\Controllers\LiveTrackingController;
 use App\Controllers\PodController;
 use App\Controllers\IncidentController;
 use App\Controllers\PlanningController;
+use App\Controllers\ReportController;
 use App\Middleware\Authenticate;
 use App\Middleware\GuestOnly;
 use App\Middleware\VerifyCsrf;
@@ -72,6 +73,9 @@ $app->router()->get('/api/dispatching', [DispatchingController::class, 'data'], 
 $app->router()->get('/api/dispatching/{id}/resources', [DispatchingController::class, 'resources'], [Authenticate::class]);
 $app->router()->post('/api/dispatching/{id}/assign', [DispatchingController::class, 'assign'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->get('/planning', [PlanningController::class, 'index'], [Authenticate::class]);
+$app->router()->get('/reports', [ReportController::class, 'index'], [Authenticate::class]);
+$app->router()->get('/api/reports/details', [ReportController::class, 'details'], [Authenticate::class]);
+$app->router()->get('/reports/export.xls', [ReportController::class, 'export'], [Authenticate::class]);
 $app->router()->get('/api/planning', [PlanningController::class, 'data'], [Authenticate::class]);
 $app->router()->get('/api/planning/{id}/resources', [PlanningController::class, 'resources'], [Authenticate::class]);
 $app->router()->post('/api/planning/{id}', [PlanningController::class, 'update'], [Authenticate::class, VerifyCsrf::class]);
