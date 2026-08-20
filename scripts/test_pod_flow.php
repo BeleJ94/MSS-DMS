@@ -30,7 +30,7 @@ try {
     $destination=$pdo->prepare('INSERT INTO delivery_destinations (delivery_id,stop_order,label,address_line,city,status,arrived_at) VALUES (:delivery,:position,:label,:address,"Lubumbashi","Déchargement",NOW())');
     $destination->execute(['delivery'=>$deliveryId,'position'=>1,'label'=>'Destination Test 1','address'=>'Adresse libre 1']);$destinationOne=(int)$pdo->lastInsertId();
     $destination->execute(['delivery'=>$deliveryId,'position'=>2,'label'=>'Destination Test 2','address'=>'Adresse libre 2']);$destinationTwo=(int)$pdo->lastInsertId();
-    $goods=$pdo->prepare('INSERT INTO delivery_goods (delivery_id,destination_id,description_snapshot,quantity,unit,delivered_quantity,delivery_condition,checked_at,checked_by) VALUES (:delivery,:destination,"Colis test",1,"pièce",1,"Conforme",NOW(),:user)');$goods->execute(['delivery'=>$deliveryId,'destination'=>$destinationOne,'user'=>$resource['user_id']]);$goods->execute(['delivery'=>$deliveryId,'destination'=>$destinationTwo,'user'=>$resource['user_id']]);
+    $goods=$pdo->prepare('INSERT INTO delivery_goods (delivery_id,destination_id,description_snapshot,quantity,unit,delivered_quantity,delivery_condition,checked_at,checked_by) VALUES (:delivery,:destination,"Colis test",1,"pièce",1,"Conforme",NOW(),:user)');$goods->execute(['delivery'=>$deliveryId,'destination'=>$destinationOne,'user'=>$resource['user_id']]);$goods->execute(['delivery'=>$deliveryId,'destination'=>$destinationTwo,'user'=>$resource['user_id']]);$pdo->prepare('UPDATE delivery_goods SET delivered_quantity=.5,delivery_condition="Partielle",driver_note="Colis incomplet" WHERE delivery_id=:delivery AND destination_id=:destination')->execute(['delivery'=>$deliveryId,'destination'=>$destinationTwo]);
     $signature=PodUpload::signature(testImageDataUrl());$photo=$signature;
     DeliveryPod::createOwned($deliveryId,$destinationOne,['recipient_name'=>'Réceptionnaire Test 1','observations'=>'Premier arrêt reçu.','latitude'=>-11.6647,'longitude'=>27.4794,'accuracy'=>8.5],$signature,$photo,$photo);
     $delivery=$pdo->query('SELECT status,delivered_at FROM deliveries WHERE id='.(int)$deliveryId)->fetch();
@@ -50,8 +50,10 @@ try {
     foreach (Delivery::listing(['search'=>$reference]) as $listedDelivery) { if ((int)$listedDelivery['id'] === $deliveryId) { $listedPod = $listedDelivery; break; } }
     expectPod($listedPod !== null && (int)$listedPod['has_pod'] === 1,'la liste des livraisons expose la disponibilité du PDF');
     expectPod(abs((float)$pod['latitude']-(-11.6648))<0.00001,'les coordonnées GPS du second bon sont enregistrées');
+    expectPod($pod['goods'][0]['delivery_condition']==='Partielle'&&(float)$pod['goods'][0]['delivered_quantity']===.5&&$pod['goods'][0]['driver_note']==='Colis incomplet','le bon restitue le prévu, le livré et le motif de l’écart');
     $pdf=PodPdf::render($pod);
     expectPod(strncmp($pdf,'%PDF-1.4',8)===0&&strlen($pdf)>5000,'le PDF professionnel est généré');
+    expectPod(strpos($pdf,'Motif : Colis incomplet')!==false&&strpos($pdf,'Partielle')!==false,'le PDF affiche clairement l’écart et son explication');
     if (in_array('--keep-pdf', $argv, true)) { file_put_contents(sys_get_temp_dir().'/mss-dms-pod-test.pdf', $pdf); }
     $history=$pdo->query('SELECT COUNT(*) FROM delivery_status_history WHERE delivery_id='.(int)$deliveryId.' AND to_status="Livrée"')->fetchColumn();
     expectPod((int)$history===1,'la course est finalisée une seule fois après le dernier bon');

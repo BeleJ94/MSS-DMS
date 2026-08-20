@@ -40,17 +40,25 @@ final class PodPdf
         $stream .= self::labelValue(42, 247, 'RÉCEPTIONNAIRE', (string) $pod['recipient_name'], 245);
         $stream .= self::labelValue(310, 247, 'POSITION GPS', number_format((float) $pod['latitude'], 6, '.', '').', '.number_format((float) $pod['longitude'], 6, '.', '').' (±'.number_format((float) $pod['accuracy_m'], 0).' m)', 243);
 
-        $stream .= self::text(42, 309, 9, 'MARCHANDISES LIVRÉES', true, [80, 101, 127]);
+        $stream .= self::text(42, 309, 9, 'CONTRÔLE DES MARCHANDISES · PRÉVU / LIVRÉ', true, [80, 101, 127]);
         $stream .= self::rect(42, 320, 511, 25, [234, 240, 247], true);
-        $stream .= self::text(54, 337, 9, 'DÉSIGNATION', true, [23, 37, 58]);
-        $stream .= self::text(540, 337, 9, 'QUANTITÉ', true, [23, 37, 58], 'right');
+        $stream .= self::text(54, 337, 8, 'DÉSIGNATION', true, [23, 37, 58]);
+        $stream .= self::text(320, 337, 8, 'PRÉVU', true, [23, 37, 58], 'right');
+        $stream .= self::text(394, 337, 8, 'LIVRÉ', true, [23, 37, 58], 'right');
+        $stream .= self::text(462, 337, 8, 'ÉCART', true, [23, 37, 58], 'right');
+        $stream .= self::text(540, 337, 8, 'ÉTAT', true, [23, 37, 58], 'right');
         $y = 359;
-        foreach (array_slice($pod['goods'], 0, 7) as $goods) {
-            $stream .= self::text(54, $y, 9, self::shorten((string) $goods['description_snapshot'], 64), false, [35, 50, 72]);
-            $stream .= self::text(540, $y, 9, $goods['quantity'].' '.$goods['unit'], true, [35, 50, 72], 'right');
-            $stream .= self::line(42, $y + 10, 553, $y + 10, [230, 235, 241]); $y += 25;
+        foreach (array_slice($pod['goods'], 0, 5) as $goods) {
+            $planned=(float)$goods['quantity'];$delivered=$goods['delivered_quantity']===null?null:(float)$goods['delivered_quantity'];$difference=$delivered===null?null:$delivered-$planned;$condition=(string)($goods['delivery_condition']??'À contrôler');$anomaly=$condition!==''&&!in_array($condition,['Conforme','À contrôler'],true);$color=$anomaly?[164,63,75]:[35,50,72];
+            $stream .= self::text(54, $y, 8, self::shorten((string) $goods['description_snapshot'], 38), true, [35, 50, 72]);
+            $stream .= self::text(320, $y, 8, self::quantity($planned).' '.$goods['unit'], false, [35, 50, 72], 'right');
+            $stream .= self::text(394, $y, 8, $delivered===null?'—':self::quantity($delivered).' '.$goods['unit'], true, $color, 'right');
+            $stream .= self::text(462, $y, 8, $difference===null?'—':(($difference>0?'+':'').self::quantity($difference)), true, $color, 'right');
+            $stream .= self::text(540, $y, 8, $condition?:'À contrôler', true, $color, 'right');
+            $note=trim((string)($goods['driver_note']??''));if($note!==''){$stream .= self::text(54, $y+12, 7, 'Motif : '.self::shorten($note,72), false, [139,70,79]);}
+            $stream .= self::line(42, $y + 18, 553, $y + 18, [230, 235, 241]); $y += 31;
         }
-        if (count($pod['goods']) > 7) { $stream .= self::text(54, $y, 8, '+ '.(count($pod['goods']) - 7).' autre(s) ligne(s)', false, [80, 101, 127]); }
+        if (count($pod['goods']) > 5) { $stream .= self::text(54, $y, 8, '+ '.(count($pod['goods']) - 5).' autre(s) ligne(s)', false, [80, 101, 127]); }
 
         $imageTop = 540;
         if (isset($images['Bon'])) {
@@ -92,6 +100,7 @@ final class PodPdf
     private static function line(float $x1,float $y1,float $x2,float $y2,array $color): string { return sprintf("%.3F %.3F %.3F RG %.2F %.2F m %.2F %.2F l S\n",$color[0]/255,$color[1]/255,$color[2]/255,$x1,self::HEIGHT-$y1,$x2,self::HEIGHT-$y2); }
     private static function image(string $name,array $image,float $x,float $top,float $boxWidth,float $boxHeight): string { $ratio=min($boxWidth/$image['width'],$boxHeight/$image['height']);$width=$image['width']*$ratio;$height=$image['height']*$ratio;$left=$x+($boxWidth-$width)/2;$bottom=self::HEIGHT-$top-$boxHeight+($boxHeight-$height)/2;return sprintf("q %.2F 0 0 %.2F %.2F %.2F cm /%s Do Q\n",$width,$height,$left,$bottom,$name); }
     private static function shorten(string $value,int $length): string { return mb_strlen($value)>$length?mb_substr($value,0,$length-1).'…':$value; }
+    private static function quantity(float $value): string { return rtrim(rtrim(number_format($value,3,'.',''),'0'),'.'); }
     private static function wrap(string $value,int $length,int $max): array { $lines=[];$words=preg_split('/\s+/u',trim($value))?:[];$line='';foreach($words as $word){$candidate=$line===''?$word:$line.' '.$word;if(mb_strlen($candidate)>$length&&$line!==''){$lines[]=$line;$line=$word;if(count($lines)>=$max)break;}else{$line=$candidate;}}if(count($lines)<$max&&$line!=='')$lines[]=$line;return $lines; }
     private static function assemble(array $objects,int $root): string { $pdf="%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";$offsets=[0];foreach($objects as $index=>$body){$offsets[]=strlen($pdf);$number=$index+1;$pdf.=$number." 0 obj\n".$body."\nendobj\n";}$xref=strlen($pdf);$pdf.="xref\n0 ".(count($objects)+1)."\n0000000000 65535 f \n";for($i=1;$i<=count($objects);$i++)$pdf.=sprintf("%010d 00000 n \n",$offsets[$i]);$pdf.="trailer\n<< /Size ".(count($objects)+1).' /Root '.$root." 0 R >>\nstartxref\n".$xref."\n%%EOF";return $pdf; }
 }

@@ -25,7 +25,7 @@ $errorMessage = Session::pull('error');
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
     <?php if (($page ?? '') === 'live-tracking' || !empty($usesLeaflet)): ?><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""><?php endif; ?>
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/app.css">
-    <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/interface.css?v=20260820-8">
+    <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/interface.css?v=20260820-9">
     <?php if (($page ?? '') === 'deliveries'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/pod-admin.css?v=20260805-2"><?php endif; ?>
     <?php if (!empty($usesLeaflet)): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/route-history.css?v=20260805-1"><?php endif; ?>
     <?php if (($page ?? '') === 'incidents'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/incidents.css"><?php endif; ?>
@@ -103,7 +103,7 @@ $errorMessage = Session::pull('error');
 <?php if (($page ?? '') === 'drivers'): ?><script src="<?= $baseUrl ?>/assets/js/drivers.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'fleet'): ?><script src="<?= $baseUrl ?>/assets/js/fleet.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'goods'): ?><script src="<?= $baseUrl ?>/assets/js/goods.js"></script><?php endif; ?>
-<?php if (($page ?? '') === 'deliveries'): ?><script src="<?= $baseUrl ?>/assets/js/deliveries.js?v=20260820-5"></script><?php endif; ?>
+<?php if (($page ?? '') === 'deliveries'): ?><script src="<?= $baseUrl ?>/assets/js/deliveries.js?v=20260820-6"></script><?php endif; ?>
 <?php if (($page ?? '') === 'incidents'): ?><script src="<?= $baseUrl ?>/assets/js/incidents.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'dispatching'): ?><script src="<?= $baseUrl ?>/assets/js/dispatching.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'planning'): ?><script src="<?= $baseUrl ?>/assets/js/planning.js?v=20260805-1"></script><?php endif; ?>

@@ -81,7 +81,7 @@ final class DeliveryPod
         $statement = Database::connection()->prepare($sql); $statement->execute(['id'=>$deliveryId,'destination'=>$destinationId]); $pod = $statement->fetch();
         if (!$pod) { return null; }
         foreach (['signature_data','delivery_photo_data','signed_note_data'] as $field) { if (is_resource($pod[$field] ?? null)) { $pod[$field] = stream_get_contents($pod[$field]); } }
-        $goods = Database::connection()->prepare('SELECT description_snapshot,quantity,unit FROM delivery_goods WHERE delivery_id=:id AND destination_id=:destination ORDER BY id');
+        $goods = Database::connection()->prepare('SELECT description_snapshot,quantity,unit,delivered_quantity,delivery_condition,driver_note,checked_at FROM delivery_goods WHERE delivery_id=:id AND destination_id=:destination ORDER BY id');
         $goods->execute(['id'=>$deliveryId,'destination'=>$destinationId]); $pod['goods'] = $goods->fetchAll();
         return $pod;
     }
