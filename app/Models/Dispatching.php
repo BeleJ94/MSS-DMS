@@ -12,12 +12,12 @@ use Throwable;
 
 final class Dispatching
 {
-    private const ASSIGNABLE_STATUSES = ['Brouillon', 'À préparer', 'Prête', 'Chargement', 'Chargée'];
-    private const ACTIVE_STATUSES = ['Brouillon', 'À préparer', 'Prête', 'Chargement', 'Chargée', 'Partie', 'En transit', 'Arrivée', 'Incident'];
+    private const ASSIGNABLE_STATUSES = ['Brouillon', 'Affectée'];
+    private const ACTIVE_STATUSES = ['Brouillon', 'Affectée', 'À préparer', 'Prête', 'Chargement', 'Chargée', 'Partie', 'En transit', 'Arrivée', 'Incident'];
 
     public static function board(array $filters = []): array
     {
-        $where = ["d.status IN ('Brouillon','À préparer','Prête','Chargement','Chargée')"];
+        $where = ["d.status IN ('Brouillon','Affectée')"];
         $params = [];
         if (($filters['priority'] ?? '') !== '') {$where[] = 'd.priority=:priority'; $params['priority'] = $filters['priority'];}
         if (($filters['assignment'] ?? '') === 'unassigned') {$where[] = '(d.driver_id IS NULL OR d.vehicle_id IS NULL)';}
@@ -28,7 +28,7 @@ final class Dispatching
             $where[] = '(d.reference LIKE :s1 OR c.company_name LIKE :s2 OR s.name LIKE :s3 OR s.city LIKE :s4)';
             foreach (['s1','s2','s3','s4'] as $key) {$params[$key] = $term;}
         }
-        $sql = 'SELECT d.id,d.reference,d.scheduled_at,d.priority,d.status,d.driver_id,d.vehicle_id,c.company_name,s.name site_name,s.city,s.address_line1,dr.first_name driver_first_name,dr.last_name driver_last_name,dr.status driver_status,v.registration_number,v.brand,v.model,v.status vehicle_status FROM deliveries d JOIN clients c ON c.id=d.client_id JOIN client_sites s ON s.id=d.client_site_id LEFT JOIN drivers dr ON dr.id=d.driver_id LEFT JOIN vehicles v ON v.id=d.vehicle_id WHERE '.implode(' AND ', $where).' ORDER BY FIELD(d.priority,"Urgente","Haute","Normale","Basse"),d.scheduled_at,d.id';
+        $sql = 'SELECT d.id,d.reference,d.scheduled_at,d.priority,d.status,d.driver_id,d.vehicle_id,c.company_name,dd.label site_name,dd.city,dd.address_line address_line1,dr.first_name driver_first_name,dr.last_name driver_last_name,dr.status driver_status,v.registration_number,v.brand,v.model,v.status vehicle_status FROM deliveries d JOIN clients c ON c.id=d.client_id LEFT JOIN delivery_destinations dd ON dd.id=(SELECT dx.id FROM delivery_destinations dx WHERE dx.delivery_id=d.id ORDER BY dx.stop_order LIMIT 1) LEFT JOIN drivers dr ON dr.id=d.driver_id LEFT JOIN vehicles v ON v.id=d.vehicle_id WHERE '.implode(' AND ', $where).' ORDER BY FIELD(d.priority,"Urgente","Haute","Normale","Basse"),d.scheduled_at,d.id';
         $statement = Database::connection()->prepare($sql);
         $statement->execute($params);
         return $statement->fetchAll();
@@ -64,10 +64,11 @@ final class Dispatching
             $oldVehicle = $delivery['vehicle_id'] ? (int)$delivery['vehicle_id'] : null;
             if ($oldDriver && $oldDriver !== $driverId) {self::releaseIfUnused($pdo, 'drivers', 'driver_id', $oldDriver, $deliveryId);}
             if ($oldVehicle && $oldVehicle !== $vehicleId) {self::releaseIfUnused($pdo, 'vehicles', 'vehicle_id', $oldVehicle, $deliveryId);}
-            $pdo->prepare('UPDATE deliveries SET driver_id=:driver,vehicle_id=:vehicle,updated_by=:user WHERE id=:id')->execute(['driver'=>$driverId,'vehicle'=>$vehicleId,'user'=>Auth::id(),'id'=>$deliveryId]);
+            $newStatus=$delivery['status']==='Brouillon'?'Affectée':$delivery['status'];$pdo->prepare('UPDATE deliveries SET driver_id=:driver,vehicle_id=:vehicle,status=:status,updated_by=:user WHERE id=:id')->execute(['driver'=>$driverId,'vehicle'=>$vehicleId,'status'=>$newStatus,'user'=>Auth::id(),'id'=>$deliveryId]);
             $pdo->prepare("UPDATE drivers SET status='Affecté',updated_by=:user WHERE id=:id")->execute(['user'=>Auth::id(),'id'=>$driverId]);
             $pdo->prepare("UPDATE vehicles SET status='Affecté',assigned_driver_id=:driver,updated_by=:user WHERE id=:id")->execute(['driver'=>$driverId,'user'=>Auth::id(),'id'=>$vehicleId]);
             $pdo->prepare('INSERT INTO delivery_assignment_history (delivery_id,previous_driver_id,driver_id,previous_vehicle_id,vehicle_id,assigned_by) VALUES (:delivery,:previous_driver,:driver,:previous_vehicle,:vehicle,:user)')->execute(['delivery'=>$deliveryId,'previous_driver'=>$oldDriver,'driver'=>$driverId,'previous_vehicle'=>$oldVehicle,'vehicle'=>$vehicleId,'user'=>Auth::id()]);
+            if($delivery['status']!==$newStatus){$pdo->prepare('INSERT INTO delivery_status_history (delivery_id,from_status,to_status,comment,changed_by) VALUES (:delivery,:from_status,:to_status,:comment,:user)')->execute(['delivery'=>$deliveryId,'from_status'=>$delivery['status'],'to_status'=>$newStatus,'comment'=>'Mission transmise au chauffeur affecté','user'=>Auth::id()]);}
             $pdo->commit();
             return ['driver'=>$driver['first_name'].' '.$driver['last_name'],'vehicle'=>$vehicle['registration_number']];
         } catch (Throwable $e) {
@@ -78,7 +79,7 @@ final class Dispatching
 
     private static function delivery(PDO $pdo, int $id, bool $lock = false): ?array
     {
-        $statement = $pdo->prepare('SELECT d.*,c.company_name,s.name site_name,s.city FROM deliveries d JOIN clients c ON c.id=d.client_id JOIN client_sites s ON s.id=d.client_site_id WHERE d.id=:id'.($lock?' FOR UPDATE':''));
+        $statement = $pdo->prepare('SELECT d.*,c.company_name,dd.label site_name,dd.city FROM deliveries d JOIN clients c ON c.id=d.client_id LEFT JOIN delivery_destinations dd ON dd.id=(SELECT dx.id FROM delivery_destinations dx WHERE dx.delivery_id=d.id ORDER BY dx.stop_order LIMIT 1) WHERE d.id=:id'.($lock?' FOR UPDATE':''));
         $statement->execute(['id'=>$id]);
         $row = $statement->fetch();
         return $row ?: null;

@@ -27,7 +27,7 @@ foreach ($files as $file) {
         $pdo->exec((string) file_get_contents($file));
         $statement = $pdo->prepare('INSERT INTO migrations (migration, batch) VALUES (:migration, :batch)');
         $statement->execute(['migration' => $name, 'batch' => $batch]);
-        $pdo->commit();
+        if ($pdo->inTransaction()) { $pdo->commit(); }
         $count++;
         echo "Migrée : {$name}\n";
     } catch (Throwable $exception) {
@@ -39,4 +39,3 @@ foreach ($files as $file) {
 }
 
 echo $count === 0 ? "Base à jour.\n" : "{$count} migration(s) exécutée(s).\n";
-

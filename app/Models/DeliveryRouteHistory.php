@@ -13,12 +13,12 @@ final class DeliveryRouteHistory
     public static function forDelivery(int $deliveryId): ?array
     {
         $deliveryStatement = Database::connection()->prepare(
-            'SELECT d.id,d.reference,d.status,c.company_name,s.name site_name,s.city site_city,
-                    s.latitude destination_latitude,s.longitude destination_longitude,
+            'SELECT d.id,d.reference,d.status,c.company_name,dd.label site_name,dd.city site_city,
+                    dd.latitude destination_latitude,dd.longitude destination_longitude,
                     CONCAT(dr.first_name," ",dr.last_name) driver_name,v.registration_number
              FROM deliveries d
              JOIN clients c ON c.id=d.client_id
-             JOIN client_sites s ON s.id=d.client_site_id
+             LEFT JOIN delivery_destinations dd ON dd.id=(SELECT dx.id FROM delivery_destinations dx WHERE dx.delivery_id=d.id ORDER BY dx.stop_order DESC LIMIT 1)
              LEFT JOIN drivers dr ON dr.id=d.driver_id
              LEFT JOIN vehicles v ON v.id=d.vehicle_id
              WHERE d.id=:id'

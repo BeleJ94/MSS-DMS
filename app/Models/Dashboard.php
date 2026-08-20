@@ -60,12 +60,12 @@ final class Dashboard
 
     private static function attention(): array
     {
-        $sql="SELECT d.id,d.reference,d.scheduled_at,d.priority,d.status,c.company_name,s.name site_name,s.city,CONCAT(COALESCE(dr.first_name,''),' ',COALESCE(dr.last_name,'')) driver_name,TIMESTAMPDIFF(MINUTE,d.scheduled_at,NOW()) delay_minutes FROM deliveries d JOIN clients c ON c.id=d.client_id JOIN client_sites s ON s.id=d.client_site_id LEFT JOIN drivers dr ON dr.id=d.driver_id WHERE d.scheduled_at<NOW() AND d.status NOT IN ('Livrée','Clôturée','Annulée') ORDER BY FIELD(d.priority,'Urgente','Haute','Normale','Basse'),d.scheduled_at LIMIT 6";return Database::connection()->query($sql)->fetchAll();
+        $sql="SELECT d.id,d.reference,d.scheduled_at,d.priority,d.status,c.company_name,dd.label site_name,dd.city,CONCAT(COALESCE(dr.first_name,''),' ',COALESCE(dr.last_name,'')) driver_name,TIMESTAMPDIFF(MINUTE,d.scheduled_at,NOW()) delay_minutes FROM deliveries d JOIN clients c ON c.id=d.client_id LEFT JOIN delivery_destinations dd ON dd.id=(SELECT dx.id FROM delivery_destinations dx WHERE dx.delivery_id=d.id AND dx.status NOT IN ('Livrée','Annulée') ORDER BY dx.stop_order LIMIT 1) LEFT JOIN drivers dr ON dr.id=d.driver_id WHERE d.scheduled_at<NOW() AND d.status NOT IN ('Livrée','Clôturée','Annulée') ORDER BY FIELD(d.priority,'Urgente','Haute','Normale','Basse'),d.scheduled_at LIMIT 6";return Database::connection()->query($sql)->fetchAll();
     }
 
     private static function today(): array
     {
-        $sql="SELECT d.id,d.reference,d.scheduled_at,d.priority,d.status,c.company_name,s.name site_name,s.city,CONCAT(COALESCE(dr.first_name,''),' ',COALESCE(dr.last_name,'')) driver_name,v.registration_number FROM deliveries d JOIN clients c ON c.id=d.client_id JOIN client_sites s ON s.id=d.client_site_id LEFT JOIN drivers dr ON dr.id=d.driver_id LEFT JOIN vehicles v ON v.id=d.vehicle_id WHERE DATE(d.scheduled_at)=CURDATE() AND d.status<>'Annulée' ORDER BY d.scheduled_at,d.id LIMIT 10";return Database::connection()->query($sql)->fetchAll();
+        $sql="SELECT d.id,d.reference,d.scheduled_at,d.priority,d.status,c.company_name,dd.label site_name,dd.city,CONCAT(COALESCE(dr.first_name,''),' ',COALESCE(dr.last_name,'')) driver_name,v.registration_number FROM deliveries d JOIN clients c ON c.id=d.client_id LEFT JOIN delivery_destinations dd ON dd.id=(SELECT dx.id FROM delivery_destinations dx WHERE dx.delivery_id=d.id ORDER BY dx.stop_order LIMIT 1) LEFT JOIN drivers dr ON dr.id=d.driver_id LEFT JOIN vehicles v ON v.id=d.vehicle_id WHERE DATE(d.scheduled_at)=CURDATE() AND d.status<>'Annulée' ORDER BY d.scheduled_at,d.id LIMIT 10";return Database::connection()->query($sql)->fetchAll();
     }
 
     private static function rate(int $value,int $total): float{return $total>0?round($value/$total*100,1):0;}

@@ -58,12 +58,14 @@ $app->router()->post('/api/goods', [GoodsController::class, 'store'], [Authentic
 $app->router()->post('/api/goods/{id}', [GoodsController::class, 'update'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->post('/api/goods/{id}/archive', [GoodsController::class, 'archive'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->get('/deliveries', [DeliveryController::class, 'index'], [Authenticate::class]);
+$app->router()->get('/deliveries/create', [DeliveryController::class, 'create'], [Authenticate::class]);
 $app->router()->get('/deliveries/{id}', [DeliveryController::class, 'show'], [Authenticate::class]);
 $app->router()->get('/api/deliveries', [DeliveryController::class, 'data'], [Authenticate::class]);
 $app->router()->get('/api/deliveries/client/{id}/options', [DeliveryController::class, 'clientOptions'], [Authenticate::class]);
 $app->router()->get('/api/deliveries/{id}/route-history', [DeliveryController::class, 'routeHistory'], [Authenticate::class]);
 $app->router()->post('/api/deliveries', [DeliveryController::class, 'store'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->post('/api/deliveries/{id}', [DeliveryController::class, 'update'], [Authenticate::class, VerifyCsrf::class]);
+$app->router()->post('/api/deliveries/{id}/delete', [DeliveryController::class, 'delete'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->post('/api/deliveries/{id}/transition', [DeliveryController::class, 'transition'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->get('/dispatching', [DispatchingController::class, 'index'], [Authenticate::class]);
 $app->router()->get('/api/dispatching', [DispatchingController::class, 'data'], [Authenticate::class]);
@@ -81,6 +83,7 @@ $app->router()->get('/api/driver-app/missions/{id}/positions', [DriverAppControl
 $app->router()->post('/api/driver-app/missions/{id}/pod', [PodController::class, 'store'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->post('/api/driver-app/missions/{id}/incident', [IncidentController::class, 'report'], [Authenticate::class, VerifyCsrf::class]);
 $app->router()->get('/deliveries/{id}/pod.pdf', [PodController::class, 'pdf'], [Authenticate::class]);
+$app->router()->get('/deliveries/{id}/destinations/{destinationId}/pod.pdf', [PodController::class, 'destinationPdf'], [Authenticate::class]);
 $app->router()->get('/incidents', [IncidentController::class, 'index'], [Authenticate::class]);
 $app->router()->get('/incidents/{id}', [IncidentController::class, 'show'], [Authenticate::class]);
 $app->router()->get('/incidents/{id}/photos/{photoId}', [IncidentController::class, 'photo'], [Authenticate::class]);

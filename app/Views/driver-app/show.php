@@ -2,18 +2,25 @@
 $maps = $mission['latitude'] && $mission['longitude']
     ? 'https://www.google.com/maps/dir/?api=1&destination='.rawurlencode($mission['latitude'].','.$mission['longitude'])
     : 'https://www.google.com/maps/search/?api=1&query='.rawurlencode($mission['site_address'].', '.$mission['site_city']);
+$nextAction=App\Models\DriverMission::nextAction($mission['status']);
+$stageClasses=['Brouillon'=>'assigned','Affectée'=>'assigned','À préparer'=>'preparation','Prête'=>'ready','Chargement'=>'loading','Chargée'=>'loaded','Partie'=>'transit','En transit'=>'transit','Arrivée'=>'arrived','Incident'=>'incident','Livrée'=>'completed','Clôturée'=>'completed'];$stageClass=$stageClasses[$mission['status']]??'assigned';
+$driverStages=['Affectée','À préparer','Prête','Chargement','Chargée','En transit','Livrée'];
+$driverStageStatus=$mission['status']==='Brouillon'?'Affectée':(in_array($mission['status'],['Partie','Arrivée'],true)?'En transit':$mission['status']);
+$driverStageIndex=array_search($driverStageStatus,$driverStages,true);
 ?>
 <a class="mobile-back" href="<?= $baseUrl ?>/driver-app"><i data-lucide="arrow-left"></i> Mes missions</a>
-<section class="mission-hero">
+<section class="mission-hero stage-<?= $stageClass ?>">
     <div><span>Mission</span><h1><?= htmlspecialchars($mission['reference'], ENT_QUOTES, 'UTF-8') ?></h1></div>
     <b><?= htmlspecialchars($mission['status'], ENT_QUOTES, 'UTF-8') ?></b>
 </section>
+<section class="mobile-card driver-workflow-card"><div class="driver-workflow-head"><div><small>PROGRESSION DE LA MISSION</small><h2>Étape sous votre responsabilité</h2></div><b><?= $driverStageIndex===false?'—':($driverStageIndex+1).' / '.count($driverStages) ?></b></div><div class="driver-workflow-track"><?php foreach($driverStages as $index=>$stage): $done=$driverStageIndex!==false&&$index<$driverStageIndex;$active=$driverStageIndex===$index; ?><div class="<?= $done?'done':'' ?> <?= $active?'active':'' ?>"><span><?= $done?'<i data-lucide="check"></i>':($index+1) ?></span><small><?= htmlspecialchars($stage,ENT_QUOTES,'UTF-8') ?></small></div><?php endforeach; ?></div><p><i data-lucide="shield-check"></i> Chaque action est horodatée et enregistrée à votre nom.</p></section>
 <section class="mobile-card destination-card">
-    <small>CLIENT ET DESTINATION</small>
+    <small>CLIENT ET PROCHAINE DESTINATION</small>
     <h2><?= htmlspecialchars($mission['company_name'], ENT_QUOTES, 'UTF-8') ?></h2>
     <p><i data-lucide="map-pin"></i><span><strong><?= htmlspecialchars($mission['site_name'], ENT_QUOTES, 'UTF-8') ?></strong><?= htmlspecialchars($mission['site_address'].', '.$mission['site_city'], ENT_QUOTES, 'UTF-8') ?></span></p>
     <a class="route-button" href="<?= htmlspecialchars($maps, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener"><i data-lucide="navigation"></i> Ouvrir l’itinéraire</a>
 </section>
+<section class="mobile-card"><small>ITINÉRAIRE · <?= count($mission['destinations']) ?> DESTINATION(S)</small><ol class="delivery-timeline"><?php foreach($mission['destinations'] as $destination): ?><li><span><?= (int)$destination['stop_order'] ?></span><div><strong><?= htmlspecialchars($destination['label'],ENT_QUOTES,'UTF-8') ?></strong><p><?= htmlspecialchars($destination['address_line'].($destination['city']?', '.$destination['city']:''),ENT_QUOTES,'UTF-8') ?></p><small><?= htmlspecialchars($destination['status'],ENT_QUOTES,'UTF-8') ?></small></div></li><?php endforeach; ?></ol></section>
 <section class="mobile-card">
     <small>CONTACT SUR PLACE</small>
     <?php if ($mission['contact_name']): ?>
@@ -32,22 +39,19 @@ $maps = $mission['latitude'] && $mission['longitude']
     <div class="gps-audit-list" id="gpsAuditList"><p>Aucune position capturée pendant cette session.</p></div>
     <small class="gps-audit-help">Ce journal compare la capture du téléphone, la file locale et la confirmation de la base de données. <b id="gpsBuildVersion"></b></small>
 </section>
-<?php if ($pod): ?>
-    <section class="mobile-card pod-complete-card"><span><i data-lucide="badge-check"></i></span><div><small>PREUVE DE LIVRAISON</small><strong>Signée par <?= htmlspecialchars($pod['recipient_name'], ENT_QUOTES, 'UTF-8') ?></strong><p><?= date('d/m/Y à H:i', strtotime($pod['captured_at'])) ?></p></div><a href="<?= $baseUrl ?>/deliveries/<?= (int) $mission['id'] ?>/pod.pdf" target="_blank"><i data-lucide="file-down"></i> PDF</a></section>
-<?php endif; ?>
+<?php foreach($pods as $completedPod): ?><section class="mobile-card pod-complete-card"><span><i data-lucide="badge-check"></i></span><div><small>DESTINATION <?= (int)$completedPod['stop_order'] ?> · BON DE LIVRAISON</small><strong><?= htmlspecialchars($completedPod['label'].' · '.$completedPod['recipient_name'],ENT_QUOTES,'UTF-8') ?></strong><p><?= date('d/m/Y à H:i',strtotime($completedPod['captured_at'])) ?></p></div><a href="<?= $baseUrl ?>/deliveries/<?= (int)$mission['id'] ?>/destinations/<?= (int)$completedPod['destination_id'] ?>/pod.pdf" target="_blank"><i data-lucide="file-down"></i> PDF</a></section><?php endforeach; ?>
 <section class="mission-actions" data-mission-id="<?= (int) $mission['id'] ?>">
-    <?php if (in_array($mission['status'], ['Chargée', 'Partie'], true)): ?><button class="primary" data-mission-action="start"><i data-lucide="play"></i>Démarrer la mission</button><?php endif; ?>
-    <?php if ($mission['status'] === 'En transit'): ?><button class="primary" data-mission-action="arrive"><i data-lucide="map-pin-check"></i>Je suis arrivé</button><?php endif; ?>
+    <?php if($nextAction): ?><div class="mission-next-action"><small>PROCHAINE ACTION</small><strong><?= htmlspecialchars($nextAction['label'],ENT_QUOTES,'UTF-8') ?></strong><p><?= $nextAction['action']==='start'?'Le suivi GPS sera activé au départ.':'Confirmez uniquement lorsque cette étape est réellement terminée.' ?></p></div><button class="primary" data-mission-action="<?= htmlspecialchars($nextAction['action'],ENT_QUOTES,'UTF-8') ?>"><i data-lucide="<?= htmlspecialchars($nextAction['icon'],ENT_QUOTES,'UTF-8') ?>"></i><?= htmlspecialchars($nextAction['label'],ENT_QUOTES,'UTF-8') ?></button><?php endif; ?>
     <?php if ($mission['status'] === 'Arrivée'): ?><button class="primary success" type="button" data-pod-open><i data-lucide="signature"></i>Faire signer et livrer</button><?php endif; ?>
     <?php if (!in_array($mission['status'], ['Incident', 'Livrée', 'Clôturée', 'Annulée'], true)): ?><button class="danger" type="button" data-incident-open><i data-lucide="triangle-alert"></i>Signaler un incident</button><?php endif; ?>
-    <?php if (in_array($mission['status'], ['Brouillon', 'À préparer', 'Prête', 'Chargement'], true)): ?><p class="waiting"><i data-lucide="clock-3"></i> Mission en préparation. Le départ sera disponible après le chargement.</p><?php endif; ?>
+    <?php if ($mission['status']==='Incident'): ?><p class="waiting"><i data-lucide="clock-3"></i> La progression est suspendue pendant le traitement de l’incident par le bureau.</p><?php endif; ?>
 </section>
 
 <?php if ($mission['status'] === 'Arrivée'): ?>
 <div class="pod-modal" id="podModal" hidden aria-hidden="true">
     <section class="pod-sheet" role="dialog" aria-modal="true" aria-labelledby="podTitle">
         <header><button type="button" data-pod-close aria-label="Fermer"><i data-lucide="x"></i></button><span>PREUVE DE LIVRAISON</span><h2 id="podTitle">Faire signer la réception</h2><p><?= htmlspecialchars($mission['reference'].' · '.$mission['company_name'], ENT_QUOTES, 'UTF-8') ?></p></header>
-        <form id="podForm" data-mission-id="<?= (int) $mission['id'] ?>">
+        <form id="podForm" data-mission-id="<?= (int) $mission['id'] ?>" data-destination-id="<?= (int)$mission['current_destination_id'] ?>">
             <label class="pod-field"><span>Nom du réceptionnaire *</span><input name="recipient_name" maxlength="160" autocomplete="name" placeholder="Nom et prénom" required></label>
             <div class="pod-field"><div class="pod-label-row"><span>Signature du réceptionnaire *</span><button type="button" data-signature-clear>Effacer</button></div><div class="signature-pad"><canvas id="signatureCanvas" aria-label="Zone de signature tactile"></canvas><em id="signatureHint"><i data-lucide="pen-line"></i> Signez avec le doigt</em></div></div>
             <label class="pod-photo-field"><input type="file" name="delivery_photo" accept="image/jpeg,image/png,image/webp" capture="environment" required><span><i data-lucide="camera"></i><b>Photo de la livraison *</b><small data-file-label="delivery_photo">Prendre une photo</small></span></label>

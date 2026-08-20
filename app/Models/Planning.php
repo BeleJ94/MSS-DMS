@@ -13,8 +13,8 @@ use Throwable;
 
 final class Planning
 {
-    private const EDITABLE = ['Brouillon', 'À préparer', 'Prête', 'Chargement', 'Chargée'];
-    private const OCCUPYING = ['Brouillon', 'À préparer', 'Prête', 'Chargement', 'Chargée', 'Partie', 'En transit', 'Arrivée', 'Incident'];
+    private const EDITABLE = ['Brouillon', 'Affectée'];
+    private const OCCUPYING = ['Brouillon', 'Affectée', 'À préparer', 'Prête', 'Chargement', 'Chargée', 'Partie', 'En transit', 'Arrivée', 'Incident'];
 
     public static function entries(array $filters): array
     {
@@ -35,7 +35,7 @@ final class Planning
         }
         $occupying = "'".implode("','", self::OCCUPYING)."'";
         $sql = "SELECT d.id,d.reference,d.scheduled_at,d.planning_duration_minutes,d.priority,d.status,d.driver_id,d.vehicle_id,
-                c.company_name,s.name site_name,s.city,s.address_line1,
+                c.company_name,dd.label site_name,dd.city,dd.address_line address_line1,
                 CONCAT_WS(' ',dr.first_name,dr.last_name) driver_name,v.registration_number,
                 (d.driver_id IS NULL OR d.vehicle_id IS NULL) is_unassigned,
                 (d.scheduled_at<NOW() AND d.status NOT IN ('Livrée','Clôturée','Annulée')) is_overdue,
@@ -45,7 +45,7 @@ final class Planning
                 (d.status IN ($occupying) AND EXISTS(SELECT 1 FROM deliveries x WHERE x.id<>d.id AND x.vehicle_id=d.vehicle_id AND d.vehicle_id IS NOT NULL
                     AND x.status IN ($occupying) AND x.scheduled_at<DATE_ADD(d.scheduled_at,INTERVAL d.planning_duration_minutes MINUTE)
                     AND DATE_ADD(x.scheduled_at,INTERVAL x.planning_duration_minutes MINUTE)>d.scheduled_at)) vehicle_conflict
-            FROM deliveries d JOIN clients c ON c.id=d.client_id JOIN client_sites s ON s.id=d.client_site_id
+            FROM deliveries d JOIN clients c ON c.id=d.client_id LEFT JOIN delivery_destinations dd ON dd.id=(SELECT dx.id FROM delivery_destinations dx WHERE dx.delivery_id=d.id ORDER BY dx.stop_order LIMIT 1)
             LEFT JOIN drivers dr ON dr.id=d.driver_id LEFT JOIN vehicles v ON v.id=d.vehicle_id
             WHERE ".implode(' AND ',$where)." ORDER BY d.scheduled_at,FIELD(d.priority,'Urgente','Haute','Normale','Basse'),d.id";
         $statement=Database::connection()->prepare($sql);$statement->execute($params);return $statement->fetchAll();
@@ -87,13 +87,14 @@ final class Planning
             if($driverId!==null){self::validateResource($pdo,'drivers',$driverId,['Disponible','Affecté'],'chauffeur');self::assertNoConflict($pdo,'driver_id',$driverId,$deliveryId,$start,$duration,'chauffeur');}
             if($vehicleId!==null){self::validateResource($pdo,'vehicles',$vehicleId,['Disponible','Affecté'],'véhicule');self::assertNoConflict($pdo,'vehicle_id',$vehicleId,$deliveryId,$start,$duration,'véhicule');}
             $oldDriver=$delivery['driver_id']?(int)$delivery['driver_id']:null;$oldVehicle=$delivery['vehicle_id']?(int)$delivery['vehicle_id']:null;
-            $pdo->prepare('UPDATE deliveries SET scheduled_at=:scheduled,planning_duration_minutes=:duration,driver_id=:driver,vehicle_id=:vehicle,updated_by=:user WHERE id=:id')->execute(['scheduled'=>$start->format('Y-m-d H:i:s'),'duration'=>$duration,'driver'=>$driverId,'vehicle'=>$vehicleId,'user'=>Auth::id(),'id'=>$deliveryId]);
+            $newStatus=$driverId!==null?'Affectée':'Brouillon';$pdo->prepare('UPDATE deliveries SET scheduled_at=:scheduled,planning_duration_minutes=:duration,driver_id=:driver,vehicle_id=:vehicle,status=:status,updated_by=:user WHERE id=:id')->execute(['scheduled'=>$start->format('Y-m-d H:i:s'),'duration'=>$duration,'driver'=>$driverId,'vehicle'=>$vehicleId,'status'=>$newStatus,'user'=>Auth::id(),'id'=>$deliveryId]);
             if($driverId!==null){$pdo->prepare("UPDATE drivers SET status='Affecté',updated_by=:user WHERE id=:id")->execute(['user'=>Auth::id(),'id'=>$driverId]);$pdo->prepare("UPDATE vehicles SET status='Affecté',assigned_driver_id=:driver,updated_by=:user WHERE id=:id")->execute(['driver'=>$driverId,'user'=>Auth::id(),'id'=>$vehicleId]);}
             if($oldDriver&&$oldDriver!==$driverId){self::release($pdo,'drivers','driver_id',$oldDriver,$deliveryId);}
             if($oldVehicle&&$oldVehicle!==$vehicleId){self::release($pdo,'vehicles','vehicle_id',$oldVehicle,$deliveryId);}
             $type=($oldDriver!==$driverId||$oldVehicle!==$vehicleId)?'Planification et affectation':'Replanification';
             $pdo->prepare('INSERT INTO delivery_planning_history (delivery_id,previous_scheduled_at,scheduled_at,previous_duration_minutes,duration_minutes,previous_driver_id,driver_id,previous_vehicle_id,vehicle_id,change_type,comment,changed_by) VALUES (:delivery,:previous_scheduled,:scheduled,:previous_duration,:duration,:previous_driver,:driver,:previous_vehicle,:vehicle,:type,:comment,:user)')->execute(['delivery'=>$deliveryId,'previous_scheduled'=>$delivery['scheduled_at'],'scheduled'=>$start->format('Y-m-d H:i:s'),'previous_duration'=>(int)$delivery['planning_duration_minutes'],'duration'=>$duration,'previous_driver'=>$oldDriver,'driver'=>$driverId,'previous_vehicle'=>$oldVehicle,'vehicle'=>$vehicleId,'type'=>$type,'comment'=>mb_substr(trim($comment),0,500),'user'=>Auth::id()]);
             if($driverId!==null&&($oldDriver!==$driverId||$oldVehicle!==$vehicleId)){$pdo->prepare('INSERT INTO delivery_assignment_history (delivery_id,previous_driver_id,driver_id,previous_vehicle_id,vehicle_id,assigned_by) VALUES (:delivery,:previous_driver,:driver,:previous_vehicle,:vehicle,:user)')->execute(['delivery'=>$deliveryId,'previous_driver'=>$oldDriver,'driver'=>$driverId,'previous_vehicle'=>$oldVehicle,'vehicle'=>$vehicleId,'user'=>Auth::id()]);}
+            if($delivery['status']!==$newStatus){$pdo->prepare('INSERT INTO delivery_status_history (delivery_id,from_status,to_status,comment,changed_by) VALUES (:delivery,:from_status,:to_status,:comment,:user)')->execute(['delivery'=>$deliveryId,'from_status'=>$delivery['status'],'to_status'=>$newStatus,'comment'=>$newStatus==='Affectée'?'Mission transmise au chauffeur affecté':'Affectation retirée avant acceptation','user'=>Auth::id()]);}
             $pdo->commit();return ['scheduled_at'=>$start->format('Y-m-d H:i:s'),'duration'=>$duration];
         }catch(Throwable $e){if($pdo->inTransaction()){$pdo->rollBack();}throw $e;}
     }
@@ -110,7 +111,7 @@ final class Planning
     private static function validateResource(PDO $pdo,string $table,int $id,array $allowed,string $label): void
     { $s=$pdo->prepare('SELECT status,is_active FROM '.$table.' WHERE id=:id FOR UPDATE');$s->execute(['id'=>$id]);$r=$s->fetch();if(!$r||!(int)$r['is_active']){throw new RuntimeException(ucfirst($label).' introuvable ou inactif.');}if(!in_array($r['status'],$allowed,true)){throw new RuntimeException(ucfirst($label).' indisponible (statut « '.$r['status'].' »).');} }
     private static function delivery(PDO $pdo,int $id,bool $lock): ?array
-    { $s=$pdo->prepare('SELECT d.*,c.company_name,s.name site_name,s.city FROM deliveries d JOIN clients c ON c.id=d.client_id JOIN client_sites s ON s.id=d.client_site_id WHERE d.id=:id'.($lock?' FOR UPDATE':''));$s->execute(['id'=>$id]);$r=$s->fetch();return $r?:null; }
+    { $s=$pdo->prepare('SELECT d.*,c.company_name,dd.label site_name,dd.city FROM deliveries d JOIN clients c ON c.id=d.client_id LEFT JOIN delivery_destinations dd ON dd.id=(SELECT dx.id FROM delivery_destinations dx WHERE dx.delivery_id=d.id ORDER BY dx.stop_order LIMIT 1) WHERE d.id=:id'.($lock?' FOR UPDATE':''));$s->execute(['id'=>$id]);$r=$s->fetch();return $r?:null; }
     private static function release(PDO $pdo,string $table,string $column,int $id,int $deliveryId): void
     { $active="'".implode("','",self::OCCUPYING)."'";$s=$pdo->prepare('SELECT COUNT(*) FROM deliveries WHERE '.$column.'=:resource AND id<>:delivery AND status IN ('.$active.')');$s->execute(['resource'=>$id,'delivery'=>$deliveryId]);if(!(int)$s->fetchColumn()){$extra=$table==='vehicles'?',assigned_driver_id=NULL':'';$pdo->prepare("UPDATE $table SET status='Disponible'$extra,updated_by=:user WHERE id=:id")->execute(['user'=>Auth::id(),'id'=>$id]);} }
     private static function date(string $value,string $message): DateTimeImmutable

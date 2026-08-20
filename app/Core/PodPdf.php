@@ -28,7 +28,8 @@ final class PodPdf
         $stream .= self::text(42, 48, 21, 'MSS-DMS', true, [22, 58, 103]);
         $stream .= self::text(42, 70, 9, 'DELIVERY MANAGEMENT SYSTEM', true, [80, 101, 127]);
         $stream .= self::text(553, 49, 15, 'PREUVE DE LIVRAISON', true, [23, 37, 58], 'right');
-        $stream .= self::text(553, 70, 9, (string) $pod['reference'], true, [36, 100, 168], 'right');
+        $bonReference=(string)$pod['reference'].'-'.str_pad((string)($pod['stop_order']??1),2,'0',STR_PAD_LEFT);
+        $stream .= self::text(553, 70, 9, $bonReference, true, [36, 100, 168], 'right');
         $stream .= self::line(42, 88, 553, 88, [216, 226, 237]);
 
         $stream .= self::labelValue(42, 112, 'CLIENT', (string) $pod['company_name'], 245);
