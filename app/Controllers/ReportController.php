@@ -21,7 +21,7 @@ final class ReportController extends Controller
         }
 
         $period = max(7, min(365, (int) $request->query('period', 30)));
-        $mode = in_array($request->query('view', 'executive'), ['executive', 'manager'], true) ? $request->query('view', 'executive') : 'executive';
+        $mode = in_array($request->query('view', 'manager'), ['executive', 'manager'], true) ? $request->query('view', 'manager') : 'manager';
         return $this->view('reports/index', [
             'title' => 'Rapports',
             'page' => 'reports',
