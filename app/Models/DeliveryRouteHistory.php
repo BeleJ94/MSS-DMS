@@ -39,10 +39,17 @@ final class DeliveryRouteHistory
         $positionStatement->execute(['id' => $deliveryId]);
         $positions = $positionStatement->fetchAll();
 
+        $eventStatement=Database::connection()->prepare('SELECT p.id pod_id,p.destination_id,p.recipient_name,p.latitude,p.longitude,p.accuracy_m,p.captured_at,dd.stop_order,dd.label destination,dd.address_line,dd.city FROM delivery_pods p JOIN delivery_destinations dd ON dd.id=p.destination_id WHERE p.delivery_id=:id ORDER BY p.captured_at,p.id');
+        $eventStatement->execute(['id'=>$deliveryId]);$events=$eventStatement->fetchAll();
+        $goodsStatement=Database::connection()->prepare('SELECT destination_id,description_snapshot,quantity planned_quantity,delivered_quantity,unit,delivery_condition,driver_note FROM delivery_goods WHERE delivery_id=:id AND destination_id IS NOT NULL ORDER BY destination_id,id');
+        $goodsStatement->execute(['id'=>$deliveryId]);$goodsByDestination=[];foreach($goodsStatement->fetchAll() as $goods){$goods['planned_quantity']=(float)$goods['planned_quantity'];$goods['delivered_quantity']=$goods['delivered_quantity']===null?null:(float)$goods['delivered_quantity'];$goods['difference']=$goods['delivered_quantity']===null?null:$goods['delivered_quantity']-$goods['planned_quantity'];$goodsByDestination[(int)$goods['destination_id']][]=$goods;}
+        foreach($events as &$event){$event['pod_id']=(int)$event['pod_id'];$event['destination_id']=(int)$event['destination_id'];$event['stop_order']=(int)$event['stop_order'];$event['latitude']=(float)$event['latitude'];$event['longitude']=(float)$event['longitude'];$event['accuracy_m']=(float)$event['accuracy_m'];$event['goods']=$goodsByDestination[$event['destination_id']]??[];$event['planned_summary']=self::quantitySummary($event['goods'],'planned_quantity');$event['delivered_summary']=self::quantitySummary($event['goods'],'delivered_quantity');$event['has_difference']=count(array_filter($event['goods'],function(array $goods):bool{return $goods['difference']!==null&&abs((float)$goods['difference'])>.0001;}))>0;}unset($event);
+
         return [
             'delivery' => $delivery,
             'summary' => self::summary($positions),
             'points' => self::mapPoints($positions),
+            'delivery_events' => $events,
         ];
     }
 
@@ -131,5 +138,10 @@ final class DeliveryRouteHistory
         $a = sin($latDelta / 2) ** 2
             + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($lonDelta / 2) ** 2;
         return $earthRadius * 2 * atan2(sqrt($a), sqrt(max(0.0, 1 - $a)));
+    }
+
+    private static function quantitySummary(array $goods,string $field): string
+    {
+        $totals=[];foreach($goods as $row){if($row[$field]===null){continue;}$unit=(string)$row['unit'];$totals[$unit]=($totals[$unit]??0)+(float)$row[$field];}$parts=[];foreach($totals as $unit=>$quantity){$parts[]=rtrim(rtrim(number_format($quantity,3,',',' '),'0'),',').' '.$unit;}return $parts?implode(' · ',$parts):'—';
     }
 }

@@ -11,6 +11,7 @@ use App\Core\PodUpload;
 use App\Core\Session;
 use App\Models\DeliveryPod;
 use App\Models\Delivery;
+use App\Models\DeliveryRouteHistory;
 
 $pdo = Database::connection();
 $deliveryId = null; $reference = 'TEST-POD-'.date('YmdHis'); $driverState = null; $vehicleState = null;
@@ -51,6 +52,14 @@ try {
     expectPod($listedPod !== null && (int)$listedPod['has_pod'] === 1,'la liste des livraisons expose la disponibilité du PDF');
     expectPod(abs((float)$pod['latitude']-(-11.6648))<0.00001,'les coordonnées GPS du second bon sont enregistrées');
     expectPod($pod['goods'][0]['delivery_condition']==='Partielle'&&(float)$pod['goods'][0]['delivered_quantity']===.5&&$pod['goods'][0]['driver_note']==='Colis incomplet','le bon restitue le prévu, le livré et le motif de l’écart');
+    $routeHistory=DeliveryRouteHistory::forDelivery($deliveryId);
+    expectPod(count($routeHistory['delivery_events'])===2,'l’itinéraire manager expose les deux points de livraison réalisés');
+    $secondEvent=$routeHistory['delivery_events'][1];
+    expectPod($secondEvent['destination']==='Destination Test 2'&&$secondEvent['stop_order']===2,'les points réalisés respectent l’ordre et le nom des destinations');
+    expectPod($secondEvent['delivered_summary']==='0,5 pièce'&&$secondEvent['planned_summary']==='1 pièce','le point réalisé résume les quantités prévues et livrées');
+    expectPod($secondEvent['has_difference']===true&&$secondEvent['goods'][0]['difference']===-.5,'l’itinéraire signale précisément l’écart de livraison');
+    expectPod($secondEvent['goods'][0]['delivery_condition']==='Partielle'&&$secondEvent['goods'][0]['driver_note']==='Colis incomplet','le manager voit l’état et le motif de l’écart');
+    expectPod(!empty($secondEvent['captured_at'])&&abs($secondEvent['latitude']-(-11.6648))<.00001,'le point livré comporte son heure et sa position GPS');
     $pdf=PodPdf::render($pod);
     expectPod(strncmp($pdf,'%PDF-1.4',8)===0&&strlen($pdf)>5000,'le PDF professionnel est généré');
     expectPod(strpos($pdf,'Motif : Colis incomplet')!==false&&strpos($pdf,'Partielle')!==false,'le PDF affiche clairement l’écart et son explication');
