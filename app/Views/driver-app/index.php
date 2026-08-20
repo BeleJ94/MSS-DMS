@@ -2,7 +2,7 @@
 <section class="mobile-intro"><span><?= date('d/m/Y') ?></span><h1>Mes missions</h1><p>Gérez séparément les étapes de chaque livraison qui vous est affectée.</p></section>
 <?php if(!$driver): ?><section class="mobile-empty warning"><i data-lucide="user-round-x"></i><h2>Compte non associé</h2><p>Demandez à l’administrateur de relier votre compte à votre fiche chauffeur.</p></section><?php elseif(!$missions): ?><section class="mobile-empty"><i data-lucide="check-circle-2"></i><h2>Aucune mission</h2><p>Vos prochaines affectations apparaîtront ici.</p></section><?php else: ?>
 <div class="mission-list"><?php foreach($missions as $mission): ?>
-<?php $nextAction=App\Models\DriverMission::nextAction($mission['status']); ?>
+<?php $nextAction=App\Models\DriverMission::nextAction($mission['status']);if($nextAction&&$nextAction['action']==='arrive'){$nextAction['label']='Arrivée destination '.((int)($mission['delivered_destination_count']??0)+1).'/'.(int)($mission['destination_count']??1).' · '.($mission['site_name']?:'Prochain arrêt');} ?>
 <article class="mission-card stage-<?= $stageClasses[$mission['status']]??'assigned' ?> <?= in_array($mission['status'],['Livrée','Clôturée'],true)?'completed':'' ?>" data-mission-id="<?= (int)$mission['id'] ?>">
     <a class="mission-card-link" href="<?= $baseUrl ?>/driver-app/missions/<?= (int)$mission['id'] ?>">
         <div class="mission-card-top"><strong><?= htmlspecialchars($mission['reference'],ENT_QUOTES,'UTF-8') ?></strong><span class="mobile-status"><?= htmlspecialchars($mission['status'],ENT_QUOTES,'UTF-8') ?></span></div>

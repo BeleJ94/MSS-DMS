@@ -3,6 +3,8 @@ $maps = $mission['latitude'] && $mission['longitude']
     ? 'https://www.google.com/maps/dir/?api=1&destination='.rawurlencode($mission['latitude'].','.$mission['longitude'])
     : 'https://www.google.com/maps/search/?api=1&query='.rawurlencode($mission['site_address'].', '.$mission['site_city']);
 $nextAction=App\Models\DriverMission::nextAction($mission['status']);
+if($nextAction&&$nextAction['action']==='arrive'){$nextAction['label']='Confirmer l’arrivée · Destination '.(int)$mission['current_stop_order'].'/'.count($mission['destinations']);}
+if($nextAction&&$nextAction['action']==='unload'){$nextAction['label']='Décharger · '.($mission['site_name']?:'Destination '.(int)$mission['current_stop_order']);}
 $stageClasses=['Brouillon'=>'assigned','Affectée'=>'assigned','À préparer'=>'preparation','Prête'=>'ready','Chargement'=>'loading','Chargée'=>'loaded','Partie'=>'transit','En transit'=>'transit','Arrivée'=>'arrived','Déchargement'=>'unloading','Incident'=>'incident','Livrée'=>'completed','Clôturée'=>'completed'];$stageClass=$stageClasses[$mission['status']]??'assigned';
 $driverStages=['Affectée','À préparer','Prête','Chargement','Chargée','En transit','Arrivée','Déchargement','Livrée'];
 $driverStageStatus=$mission['status']==='Brouillon'?'Affectée':($mission['status']==='Partie'?'En transit':$mission['status']);
