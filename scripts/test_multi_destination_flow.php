@@ -7,6 +7,7 @@ $app=require dirname(__DIR__).'/bootstrap/app.php';
 
 use App\Core\Database;
 use App\Core\Session;
+use App\Core\View;
 use App\Models\Delivery;
 
 $pdo=Database::connection();$deliveryId=null;
@@ -36,5 +37,6 @@ try{
     expectMulti($listed[0]['current_destination']['label']==='Entrepôt Nord'&&(int)$listed[0]['current_destination']['stop_order']===1,'le prochain arrêt opérationnel est identifié');
     expectMulti((int)$listed[0]['destinations'][0]['goods_count']===1&&(int)$listed[0]['destinations'][1]['goods_count']===1,'la répartition des marchandises est disponible par destination');
     $searchedBySecondStop=array_values(array_filter(Delivery::listing(['search'=>'Agence Centre']),function(array $row)use($deliveryId):bool{return(int)$row['id']===$deliveryId;}));expectMulti(count($searchedBySecondStop)===1,'la recherche retrouve aussi une destination autre que la première');
+    $firstGoods=(int)$delivery['goods'][0]['id'];$pdo->prepare('UPDATE delivery_goods SET delivered_quantity=1,delivery_condition="Endommagée",driver_note="Emballage déchiré",checked_at=NOW(),checked_by=:user WHERE id=:id')->execute(['user'=>$user,'id'=>$firstGoods]);$delivery=Delivery::find($deliveryId);$html=View::render('deliveries/show',['delivery'=>$delivery,'canViewRoute'=>false,'canManage'=>false,'canDelete'=>false,'canTransition'=>false,'allowedNext'=>[]]);expectMulti(substr_count($html,'destination-detail-card')>=2&&strpos($html,'Destinations et marchandises')!==false,'la fiche détaillée rend une fiche opérationnelle par destination');expectMulti(strpos($html,'Colis destination Nord')!==false&&strpos($html,'Colis destination Centre')!==false,'les marchandises sont affichées dans leurs destinations respectives');expectMulti(strpos($html,'Endommagée')!==false&&strpos($html,'Emballage déchiré')!==false,'les anomalies de déchargement sont visibles sur la fiche détaillée');expectMulti(strpos($html,'PROCHAINE DESTINATION')!==false&&strpos($html,'Arrêt 1/2')!==false,'la synthèse identifie le prochain arrêt');
     echo "MULTI_DESTINATION_FLOW_OK\n";
 }finally{if($deliveryId){$pdo->prepare('DELETE FROM deliveries WHERE id=:id')->execute(['id'=>$deliveryId]);}}
