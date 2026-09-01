@@ -20,11 +20,9 @@ final class PodController extends Controller
     {
         if (!Auth::can('driver_app.access')) { return $this->json(['success' => false, 'message' => 'Accès refusé.'], 403); }
         try {
-            $signature = PodUpload::signature((string) $request->input('signature', ''));
             $photo = PodUpload::photo($request->file('delivery_photo'), true, 'La photo de livraison');
-            $signedNote = PodUpload::photo($request->file('signed_note_photo'), false, 'La photo du bon signé');
             $destinationId=(int)$request->input('destination_id',0);
-            $podId=DeliveryPod::createOwned((int)$request->param('id'),$destinationId,$request->all(),$signature,$photo,$signedNote);$destinationId=DeliveryPod::destinationId($podId);
+            $podId=DeliveryPod::createOwned((int)$request->param('id'),$destinationId,$request->all(),$photo);$destinationId=DeliveryPod::destinationId($podId);
             return $this->json(['success'=>true,'message'=>'Destination livrée et bon généré.','pdf_url'=>$this->baseUrl().'/deliveries/'.(int)$request->param('id').'/destinations/'.$destinationId.'/pod.pdf'],201);
         } catch (Throwable $exception) {
             return $this->json(['success' => false, 'message' => $exception instanceof RuntimeException ? $exception->getMessage() : 'Impossible d’enregistrer la preuve de livraison.'], 422);

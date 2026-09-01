@@ -17,7 +17,7 @@ final class PodPdf
         $fontRegular = $add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
         $fontBold = $add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
         $images = [];
-        foreach (['signature_data' => 'Signature', 'delivery_photo_data' => 'Photo', 'signed_note_data' => 'Bon'] as $field => $name) {
+        foreach (['delivery_photo_data' => 'Photo'] as $field => $name) {
             if (empty($pod[$field])) { continue; }
             $size = @getimagesizefromstring($pod[$field]); if (!$size) { continue; }
             $imageId = $add('<< /Type /XObject /Subtype /Image /Width '.$size[0].' /Height '.$size[1].' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '.strlen($pod[$field])." >>\nstream\n".$pod[$field]."\nendstream");
@@ -27,7 +27,7 @@ final class PodPdf
         $stream = self::background();
         $stream .= self::text(42, 48, 21, 'MSS-DMS', true, [22, 58, 103]);
         $stream .= self::text(42, 70, 9, 'DELIVERY MANAGEMENT SYSTEM', true, [80, 101, 127]);
-        $stream .= self::text(553, 49, 15, 'PREUVE DE LIVRAISON', true, [23, 37, 58], 'right');
+        $stream .= self::text(553, 49, 15, 'BON DE LIVRAISON', true, [23, 37, 58], 'right');
         $bonReference=(string)$pod['reference'].'-'.str_pad((string)($pod['stop_order']??1),2,'0',STR_PAD_LEFT);
         $stream .= self::text(553, 70, 9, $bonReference, true, [36, 100, 168], 'right');
         $stream .= self::line(42, 88, 553, 88, [216, 226, 237]);
@@ -61,21 +61,9 @@ final class PodPdf
         if (count($pod['goods']) > 5) { $stream .= self::text(54, $y, 8, '+ '.(count($pod['goods']) - 5).' autre(s) ligne(s)', false, [80, 101, 127]); }
 
         $imageTop = 540;
-        if (isset($images['Bon'])) {
-            foreach ([['Signature',42,'SIGNATURE'],['Photo',219,'PHOTO LIVRAISON'],['Bon',396,'BON SIGNÉ']] as $column) {
-                $stream .= self::text($column[1], $imageTop - 13, 8, $column[2], true, [80, 101, 127]);
-                $stream .= self::rect($column[1], $imageTop, 157, 126, [225, 232, 239], false);
-                $stream .= self::image($column[0], $images[$column[0]], $column[1] + 8, $imageTop + 8, 141, 106);
-            }
-        } else {
-            $stream .= self::text(42, $imageTop - 13, 9, 'SIGNATURE DU RÉCEPTIONNAIRE', true, [80, 101, 127]);
-            $stream .= self::rect(42, $imageTop, 245, 126, [225, 232, 239], false);
-            if (isset($images['Signature'])) { $stream .= self::image('Signature', $images['Signature'], 52, $imageTop + 10, 225, 96); }
-            $stream .= self::text(54, $imageTop + 118, 8, (string) $pod['recipient_name'], false, [80, 101, 127]);
-            $stream .= self::text(310, $imageTop - 13, 9, 'PHOTO À LA LIVRAISON', true, [80, 101, 127]);
-            $stream .= self::rect(310, $imageTop, 243, 126, [225, 232, 239], false);
-            if (isset($images['Photo'])) { $stream .= self::image('Photo', $images['Photo'], 320, $imageTop + 10, 223, 106); }
-        }
+        $stream .= self::text(42, $imageTop - 13, 9, 'PHOTO À LA LIVRAISON', true, [80, 101, 127]);
+        $stream .= self::rect(42, $imageTop, 511, 126, [225, 232, 239], false);
+        if (isset($images['Photo'])) { $stream .= self::image('Photo', $images['Photo'], 54, $imageTop + 8, 487, 110); }
 
         $stream .= self::text(42, 695, 9, 'OBSERVATIONS', true, [80, 101, 127]);
         $stream .= self::rect(42, 705, 511, 65, [225, 232, 239], false);

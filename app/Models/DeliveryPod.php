@@ -12,7 +12,7 @@ use Throwable;
 
 final class DeliveryPod
 {
-    public static function createOwned(int $deliveryId, int $destinationId, array $data, array $signature, array $photo, ?array $signedNote): int
+    public static function createOwned(int $deliveryId, int $destinationId, array $data, array $photo): int
     {
         $recipient = trim((string) ($data['recipient_name'] ?? ''));
         if (mb_strlen($recipient) < 2 || mb_strlen($recipient) > 160) {
@@ -34,7 +34,7 @@ final class DeliveryPod
             $delivery = $statement->fetch();
             if (!$delivery || (int) $delivery['user_id'] !== (int) Auth::id()) { throw new RuntimeException('Mission introuvable ou non autorisée.'); }
             if ($delivery['status'] !== 'Déchargement' || $delivery['destination_status'] !== 'Déchargement') { throw new RuntimeException('Terminez d’abord le contrôle du déchargement en cours.'); }
-            $unchecked=$pdo->prepare('SELECT COUNT(*) FROM delivery_goods WHERE delivery_id=:delivery AND destination_id=:destination AND checked_at IS NULL');$unchecked->execute(['delivery'=>$deliveryId,'destination'=>$destinationId]);if((int)$unchecked->fetchColumn()>0){throw new RuntimeException('Contrôlez toutes les marchandises avant de faire signer le réceptionnaire.');}
+            $unchecked=$pdo->prepare('SELECT COUNT(*) FROM delivery_goods WHERE delivery_id=:delivery AND destination_id=:destination AND checked_at IS NULL');$unchecked->execute(['delivery'=>$deliveryId,'destination'=>$destinationId]);if((int)$unchecked->fetchColumn()>0){throw new RuntimeException('Contrôlez toutes les marchandises avant de confirmer la livraison.');}
             if (!$delivery['vehicle_id']) { throw new RuntimeException('Aucun véhicule n’est affecté à cette mission.'); }
 
             $sql = 'INSERT INTO delivery_pods (delivery_id,destination_id,recipient_name,observations,signature_mime,signature_data,delivery_photo_mime,delivery_photo_data,signed_note_mime,signed_note_data,latitude,longitude,accuracy_m,captured_at,driver_id,vehicle_id,created_by) VALUES (:delivery,:destination,:recipient,:observations,:signature_mime,:signature_data,:photo_mime,:photo_data,:note_mime,:note_data,:latitude,:longitude,:accuracy,NOW(),:driver,:vehicle,:user)';
@@ -43,13 +43,12 @@ final class DeliveryPod
             $insert->bindValue(':destination', $destinationId, PDO::PARAM_INT);
             $insert->bindValue(':recipient', $recipient);
             $insert->bindValue(':observations', $observations !== '' ? $observations : null);
-            $insert->bindValue(':signature_mime', $signature['mime']);
-            $insert->bindValue(':signature_data', $signature['data'], PDO::PARAM_LOB);
+            $insert->bindValue(':signature_mime', null, PDO::PARAM_NULL);
+            $insert->bindValue(':signature_data', null, PDO::PARAM_NULL);
             $insert->bindValue(':photo_mime', $photo['mime']);
             $insert->bindValue(':photo_data', $photo['data'], PDO::PARAM_LOB);
-            $insert->bindValue(':note_mime', $signedNote['mime'] ?? null);
-            if ($signedNote) { $insert->bindValue(':note_data', $signedNote['data'], PDO::PARAM_LOB); }
-            else { $insert->bindValue(':note_data', null, PDO::PARAM_NULL); }
+            $insert->bindValue(':note_mime', null, PDO::PARAM_NULL);
+            $insert->bindValue(':note_data', null, PDO::PARAM_NULL);
             $insert->bindValue(':latitude', (float) $latitude);
             $insert->bindValue(':longitude', (float) $longitude);
             $insert->bindValue(':accuracy', (float) $accuracy);
