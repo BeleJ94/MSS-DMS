@@ -40,12 +40,14 @@ $driverStageIndex=array_search($driverStageStatus,$driverStages,true);
     <?php else: ?><ul class="mobile-goods"><?php foreach ($mission['goods'] as $goods): ?><li><span><?= htmlspecialchars($goods['description_snapshot'], ENT_QUOTES, 'UTF-8') ?></span><strong><?= htmlspecialchars($goods['quantity'].' '.$goods['unit'], ENT_QUOTES, 'UTF-8') ?></strong></li><?php endforeach; ?><?php if (!$mission['goods']): ?><li><span>Aucune ligne renseignée</span></li><?php endif; ?></ul><?php endif; ?>
 </section>
 <?php if ($mission['delivery_instructions']): ?><section class="mobile-card instruction"><i data-lucide="info"></i><div><small>INSTRUCTIONS</small><p><?= nl2br(htmlspecialchars($mission['delivery_instructions'], ENT_QUOTES, 'UTF-8')) ?></p></div></section><?php endif; ?>
-<section class="mobile-card gps-audit" id="gpsAudit" data-mission-id="<?= (int)$mission['id'] ?>">
-    <div class="gps-audit-head"><div><small>VÉRIFICATION GPS EN TEMPS RÉEL</small><h2>Historique des transmissions</h2></div><button type="button" id="gpsAuditRefresh" aria-label="Actualiser"><i data-lucide="refresh-cw"></i></button></div>
-    <div class="gps-audit-kpis"><span><b id="gpsCapturedCount">0</b><small>capturées</small></span><span><b id="gpsPendingCount">0</b><small>en attente</small></span><span><b id="gpsServerCount">0</b><small>sur serveur</small></span><span><b id="gpsRejectedCount">0</b><small>rejetées</small></span></div>
-    <p class="gps-audit-state" id="gpsAuditState"><i data-lucide="satellite"></i><span>Chargement de l’historique du serveur…</span></p>
-    <div class="gps-audit-list" id="gpsAuditList"><p>Aucune position capturée pendant cette session.</p></div>
-    <small class="gps-audit-help">Ce journal compare la capture du téléphone, la file locale et la confirmation de la base de données. <b id="gpsBuildVersion"></b></small>
+<section class="mobile-card gps-audit is-collapsed" id="gpsAudit" data-mission-id="<?= (int)$mission['id'] ?>">
+    <div class="gps-audit-head"><div><small>VÉRIFICATION GPS EN TEMPS RÉEL</small><h2>Historique des transmissions</h2></div><div class="gps-audit-actions"><button type="button" id="gpsAuditRefresh" aria-label="Actualiser"><i data-lucide="refresh-cw"></i></button><button type="button" id="gpsAuditToggle" aria-expanded="false"><span>Voir les détails</span><i data-lucide="chevron-down"></i></button></div></div>
+    <div class="gps-audit-details" id="gpsAuditDetails">
+        <div class="gps-audit-kpis"><span><b id="gpsCapturedCount">0</b><small>capturées</small></span><span><b id="gpsPendingCount">0</b><small>en attente</small></span><span><b id="gpsServerCount">0</b><small>sur serveur</small></span><span><b id="gpsRejectedCount">0</b><small>rejetées</small></span></div>
+        <p class="gps-audit-state" id="gpsAuditState"><i data-lucide="satellite"></i><span>Chargement de l’historique du serveur…</span></p>
+        <div class="gps-audit-list" id="gpsAuditList"><p>Aucune position capturée pendant cette session.</p></div>
+        <small class="gps-audit-help">Ce journal compare la capture du téléphone, la file locale et la confirmation de la base de données. <b id="gpsBuildVersion"></b></small>
+    </div>
 </section>
 <?php foreach($pods as $completedPod): ?><section class="mobile-card pod-complete-card"><span><i data-lucide="badge-check"></i></span><div><small>DESTINATION <?= (int)$completedPod['stop_order'] ?> · BON DE LIVRAISON</small><strong><?= htmlspecialchars($completedPod['label'].' · '.$completedPod['recipient_name'],ENT_QUOTES,'UTF-8') ?></strong><p><?= date('d/m/Y à H:i',strtotime($completedPod['captured_at'])) ?></p></div><a href="<?= $baseUrl ?>/deliveries/<?= (int)$mission['id'] ?>/destinations/<?= (int)$completedPod['destination_id'] ?>/pod.pdf" target="_blank"><i data-lucide="file-down"></i> PDF</a></section><?php endforeach; ?>
 <section class="mission-actions" data-mission-id="<?= (int) $mission['id'] ?>">

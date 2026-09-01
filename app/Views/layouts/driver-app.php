@@ -23,6 +23,7 @@ $user = Auth::user();
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/driver-location.css">
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/driver-pod.css">
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/driver-incident.css">
+    <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/driver-tracking.css?v=20260901-1">
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/typography.css?v=20260806-1">
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/modal-actions.css?v=20260806-2">
 </head>
@@ -63,7 +64,7 @@ $user = Auth::user();
 <script>window.MSS_DRIVER_APP=<?= json_encode(['baseUrl' => $baseUrl, 'csrf' => Csrf::token(), 'activeMissionId' => (int) ($activeMissionId ?? 0), 'build' => '20260807-5'], JSON_UNESCAPED_SLASHES) ?>;</script>
 <script src="<?= $baseUrl ?>/assets/js/driver-tracking.js?v=20260807-5"></script>
 <script src="<?= $baseUrl ?>/assets/js/driver-app.js?v=20260901-2"></script>
-<script src="<?= $baseUrl ?>/assets/js/driver-gps-diagnostics.js?v=20260807-5"></script>
+<script src="<?= $baseUrl ?>/assets/js/driver-gps-diagnostics.js?v=20260901-1"></script>
 <script src="<?= $baseUrl ?>/assets/js/driver-pod.js?v=20260901-1"></script>
 <script src="<?= $baseUrl ?>/assets/js/driver-incident.js"></script>
 </body>
