@@ -33,7 +33,7 @@ final class DriverAppController extends Controller
     }
     public function positions(Request $request): Response
     {
-        if(!Auth::can('driver_app.access')){return $this->json(['success'=>false,'message'=>'Accès refusé.'],403);}try{$positions=$request->input('positions',[]);if(!is_array($positions)){throw new RuntimeException('Format de positions invalide.');}$result=GpsTracking::recordBatch((int)$request->param('id'),$positions,(string)$request->input('source','pwa'));return $this->json(['success'=>true,'data'=>$result]);}catch(Throwable $e){return $this->json(['success'=>false,'message'=>$e instanceof RuntimeException?$e->getMessage():'Enregistrement GPS impossible.'],422);}
+        if(!Auth::can('driver_app.access')){return $this->json(['success'=>false,'message'=>'Accès refusé.'],403);}try{$positions=$request->input('positions',[]);if(!is_array($positions)){throw new RuntimeException('Format de positions invalide.');}$result=GpsTracking::recordBatch((int)$request->param('id'),$positions,(string)$request->input('source','pwa'));return $this->json(['success'=>true,'data'=>$result]);}catch(Throwable $e){@error_log(sprintf("[%s] GPS sync failed user=%d mission=%d positions=%d: %s\n",date('c'),(int)Auth::id(),(int)$request->param('id'),is_array($request->input('positions',[]))?count($request->input('positions',[])):0,$e->getMessage()),3,BASE_PATH.'/storage/logs/app.log');return $this->json(['success'=>false,'message'=>$e instanceof RuntimeException?$e->getMessage():'Enregistrement GPS impossible.'],422);}
     }
     public function positionHistory(Request $request): Response
     {
