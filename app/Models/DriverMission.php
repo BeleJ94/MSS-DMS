@@ -40,8 +40,9 @@ final class DriverMission
             if($mission['status']==='Brouillon'){Delivery::transition($id,'Affectée','Mission affectée confirmée au démarrage du chargement');$mission=self::findOwned($id);}
             if($mission['status']==='Affectée'){Delivery::transition($id,'À préparer','Préparation administrative validée automatiquement');$mission=self::findOwned($id);}
             if($mission['status']==='À préparer'){Delivery::transition($id,'Prête','Mission déclarée prête automatiquement');$mission=self::findOwned($id);}
-            if($mission['status']!=='Prête'){throw new RuntimeException('Le chargement ne peut pas être démarré à cette étape.');}
-            Delivery::transition($id,'Chargement','Chargement démarré par le chauffeur');return 'Chargement démarré.';
+            if($mission['status']==='Prête'){Delivery::transition($id,'Chargement','Chargement confirmé par le chauffeur');$mission=self::findOwned($id);}
+            if($mission['status']!=='Chargement'){throw new RuntimeException('Le chargement ne peut pas être confirmé à cette étape.');}
+            Delivery::transition($id,'Chargée','Véhicule déclaré chargé par le chauffeur');return 'Chargement confirmé. Vous pouvez signaler le départ.';
         }
         if($action==='loaded'){if($mission['status']!=='Chargement'){throw new RuntimeException('La fin du chargement ne peut pas être confirmée à cette étape.');}Delivery::transition($id,'Chargée','Chargement terminé et contrôlé par le chauffeur');return 'Chargement confirmé. La mission peut démarrer.';}
         if($action==='start'){
@@ -59,7 +60,7 @@ final class DriverMission
 
     public static function nextAction(string $status): ?array
     {
-        $actions=['Brouillon'=>['action'=>'load','label'=>'Commencer le chargement','icon'=>'package-open'],'Affectée'=>['action'=>'load','label'=>'Commencer le chargement','icon'=>'package-open'],'À préparer'=>['action'=>'load','label'=>'Commencer le chargement','icon'=>'package-open'],'Prête'=>['action'=>'load','label'=>'Commencer le chargement','icon'=>'package-open'],'Chargement'=>['action'=>'loaded','label'=>'Confirmer le chargement','icon'=>'package-check'],'Chargée'=>['action'=>'start','label'=>'Confirmer le départ','icon'=>'navigation'],'Partie'=>['action'=>'start','label'=>'Confirmer le départ','icon'=>'navigation'],'En transit'=>['action'=>'arrive','label'=>'Confirmer mon arrivée','icon'=>'map-pin-check'],'Arrivée'=>['action'=>'unload','label'=>'Commencer le déchargement','icon'=>'package-open']];return $actions[$status]??null;
+        $actions=['Brouillon'=>['action'=>'load','label'=>'Véhicule chargé','icon'=>'package-check'],'Affectée'=>['action'=>'load','label'=>'Véhicule chargé','icon'=>'package-check'],'À préparer'=>['action'=>'load','label'=>'Véhicule chargé','icon'=>'package-check'],'Prête'=>['action'=>'load','label'=>'Véhicule chargé','icon'=>'package-check'],'Chargement'=>['action'=>'load','label'=>'Véhicule chargé','icon'=>'package-check'],'Chargée'=>['action'=>'start','label'=>'Confirmer le départ','icon'=>'navigation'],'Partie'=>['action'=>'start','label'=>'Confirmer le départ','icon'=>'navigation'],'En transit'=>['action'=>'arrive','label'=>'Confirmer mon arrivée','icon'=>'map-pin-check'],'Arrivée'=>['action'=>'unload','label'=>'Commencer le déchargement','icon'=>'package-open']];return $actions[$status]??null;
     }
 
     public static function confirmUnloading(int $id,array $rows): string
