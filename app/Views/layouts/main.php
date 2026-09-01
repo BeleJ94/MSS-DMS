@@ -103,7 +103,7 @@ $errorMessage = Session::pull('error');
 <?php if (($page ?? '') === 'drivers'): ?><script src="<?= $baseUrl ?>/assets/js/drivers.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'fleet'): ?><script src="<?= $baseUrl ?>/assets/js/fleet.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'goods'): ?><script src="<?= $baseUrl ?>/assets/js/goods.js"></script><?php endif; ?>
-<?php if (($page ?? '') === 'deliveries'): ?><script src="<?= $baseUrl ?>/assets/js/deliveries.js?v=20260901-1"></script><?php endif; ?>
+<?php if (($page ?? '') === 'deliveries'): ?><script src="<?= $baseUrl ?>/assets/js/deliveries.js?v=20260901-2"></script><?php endif; ?>
 <?php if (($page ?? '') === 'incidents'): ?><script src="<?= $baseUrl ?>/assets/js/incidents.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'dispatching'): ?><script src="<?= $baseUrl ?>/assets/js/dispatching.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'planning'): ?><script src="<?= $baseUrl ?>/assets/js/planning.js?v=20260805-1"></script><?php endif; ?>
