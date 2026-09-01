@@ -24,10 +24,10 @@ final class GpsTracking
         if($positions===[]||count($positions)>100){throw new RuntimeException('Le lot doit contenir entre 1 et 100 positions.');}
         $validated=array_map([self::class,'validate'],$positions);$pdo=Database::connection();$pdo->beginTransaction();
         try{
-            $missionStatement=$pdo->prepare('SELECT d.id,d.driver_id,d.status FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id WHERE d.id=:delivery AND dr.user_id=:user FOR UPDATE');
+            $missionStatement=$pdo->prepare('SELECT d.id,d.driver_id,d.status,d.delivered_at,d.closed_at FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id WHERE d.id=:delivery AND dr.user_id=:user FOR UPDATE');
             $missionStatement->execute(['delivery'=>$deliveryId,'user'=>Auth::id()]);$mission=$missionStatement->fetch();
             if(!$mission){throw new RuntimeException('Mission introuvable ou non autorisée.');}
-            if(!in_array($mission['status'],self::ACTIVE_STATUSES,true)){throw new RuntimeException('Le tracking est fermé pour cette mission.');}
+            if(!in_array($mission['status'],self::ACTIVE_STATUSES,true)){$endedAt=$mission['closed_at']?:$mission['delivered_at'];if(!$endedAt){throw new RuntimeException('Le tracking est fermé pour cette mission.');}$cutoff=strtotime((string)$endedAt)+300;foreach($validated as $position){if(strtotime($position['captured_at'])>$cutoff){throw new RuntimeException('Le tracking est fermé pour cette mission.');}}}
             $sql='INSERT INTO delivery_gps_positions (delivery_id,driver_id,device_position_id,latitude,longitude,accuracy_m,altitude_m,speed_mps,heading_deg,captured_at,source) VALUES (:delivery,:driver,:position_id,:latitude,:longitude,:accuracy,:altitude,:speed,:heading,:captured_at,:source)';
             $insert=$pdo->prepare($sql);$accepted=0;$duplicates=0;$recordedIds=[];$duplicateIds=[];$normalizedSource=in_array($source,['pwa','native-ios','native-android'],true)?$source:'pwa';
             foreach($validated as $position){

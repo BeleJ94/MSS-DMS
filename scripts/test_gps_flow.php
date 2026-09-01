@@ -124,15 +124,11 @@ try {
     expectGps($route['summary']['distance_km'] > 0, 'la distance historique est calculée');
     expectGps(count($route['points']) === 6, 'les points cartographiques sont ordonnés et disponibles');
 
-    $pdo->prepare('UPDATE deliveries SET status="Livrée" WHERE id=:id')->execute(['id' => $deliveryId]);
+    $pdo->prepare('UPDATE deliveries SET status="Livrée",delivered_at=NOW() WHERE id=:id')->execute(['id' => $deliveryId]);
     $closedRoute = DeliveryRouteHistory::forDelivery($deliveryId);
     expectGps($closedRoute !== null && $closedRoute['summary']['position_count'] === 6, 'le trajet reste consultable après la livraison');
-    try {
-        GpsTracking::recordBatch($deliveryId, [array_merge($position, ['position_id' => $positionId . '-closed'])]);
-        throw new RuntimeException('Le tracking aurait dû être refusé après la mission.');
-    } catch (RuntimeException $exception) {
-        expectGps(strpos($exception->getMessage(), 'tracking est fermé') !== false, 'le tracking est refusé hors mission active');
-    }
+    $late=GpsTracking::recordBatch($deliveryId,[array_merge($position,['position_id'=>$positionId.'-late','captured_at'=>gmdate('c',time()-60)])]);expectGps($late['accepted']===1,'une position capturée avant la fin est synchronisée tardivement après la livraison');
+    try {GpsTracking::recordBatch($deliveryId,[array_merge($position,['position_id'=>$positionId.'-closed','captured_at'=>gmdate('c',time()+301)])]);throw new RuntimeException('Le tracking aurait dû être refusé après la mission.');}catch(RuntimeException $exception){expectGps(strpos($exception->getMessage(),'tracking est fermé')!==false||strpos($exception->getMessage(),'Horodatage GPS hors limites')!==false,'une nouvelle position est refusée hors mission active');}
     echo "GPS_FLOW_OK\n";
 } finally {
     if ($deliveryId) {
