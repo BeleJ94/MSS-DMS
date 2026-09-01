@@ -13,6 +13,7 @@ let sentPayload = null;
 const sentPayloads = [];
 let watchSuccess = null;
 const listeners = {};
+const rejectedPositionIds = new Set();
 const context = {
     console,
     Promise,
@@ -80,6 +81,9 @@ const context = {
         sentPayload = { url, body: JSON.parse(options.body) };
         sentPayloads.push(sentPayload);
         const ids = sentPayload.body.positions.map(row => row.position_id);
+        if (ids.some(id => rejectedPositionIds.has(id))) {
+            return Promise.resolve({ ok: false, status: 422, json: () => Promise.resolve({ success: false, message: 'Ancienne position refusée.' }) });
+        }
         return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ success: true, data: { accepted: ids.length, duplicates: 0, total_positions: ids.length, recorded_ids: ids, duplicate_ids: [], persisted_ids: ids } }) });
     },
     addEventListener: function (name, callback) { listeners[name] = callback; },
@@ -115,6 +119,12 @@ vm.runInNewContext(fs.readFileSync(__dirname + '/../public/assets/js/driver-trac
     allSentPositions = sentPayloads.reduce((rows, payload) => rows.concat(payload.body.positions || []), []);
     expect(allSentPositions.length >= 2, 'la capture périodique ajoute un nouveau point');
     expect(new Set(allSentPositions.map(row => row.position_id)).size === allSentPositions.length, 'chaque position PWA possède un identifiant unique');
+    rejectedPositionIds.add('old-rejected');
+    indexedPositions.set('old-rejected', { mission_id: 1, position_id: 'old-rejected', latitude: -11.7, longitude: 27.4, accuracy: 8, captured_at: new Date(Date.now() - 60000).toISOString() });
+    indexedPositions.set('current-valid', { mission_id: 42, position_id: 'current-valid', latitude: -11.6, longitude: 27.5, accuracy: 7, captured_at: new Date().toISOString() });
+    expect(!(await context.MSSGps.flush()), 'la file signale encore la position réellement refusée');
+    expect(indexedPositions.has('old-rejected'), 'la position refusée reste récupérable sur le téléphone');
+    expect(!indexedPositions.has('current-valid'), 'une ancienne position refusée ne bloque plus les positions valides');
     context.MSSGps.stop();
     expect(!context.MSSGps.isActive(), 'le tracking s’arrête après la mission');
     process.stdout.write('DRIVER_TRACKING_OK\n');
