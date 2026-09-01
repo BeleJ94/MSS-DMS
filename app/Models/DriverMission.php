@@ -36,7 +36,13 @@ final class DriverMission
             if($mission['status']!=='Affectée'){throw new RuntimeException('Cette mission ne peut plus être acceptée à cette étape.');}Delivery::transition($id,'À préparer','Mission acceptée par le chauffeur');return 'Mission acceptée. Vous êtes désormais responsable de sa progression.';
         }
         if($action==='prepare'){if($mission['status']!=='À préparer'){throw new RuntimeException('La préparation ne peut pas être confirmée à cette étape.');}Delivery::transition($id,'Prête','Préparation confirmée par le chauffeur');return 'Préparation terminée. La mission est prête au chargement.';}
-        if($action==='load'){if($mission['status']!=='Prête'){throw new RuntimeException('Le chargement ne peut pas être démarré à cette étape.');}Delivery::transition($id,'Chargement','Chargement démarré par le chauffeur');return 'Chargement démarré.';}
+        if($action==='load'){
+            if($mission['status']==='Brouillon'){Delivery::transition($id,'Affectée','Mission affectée confirmée au démarrage du chargement');$mission=self::findOwned($id);}
+            if($mission['status']==='Affectée'){Delivery::transition($id,'À préparer','Préparation administrative validée automatiquement');$mission=self::findOwned($id);}
+            if($mission['status']==='À préparer'){Delivery::transition($id,'Prête','Mission déclarée prête automatiquement');$mission=self::findOwned($id);}
+            if($mission['status']!=='Prête'){throw new RuntimeException('Le chargement ne peut pas être démarré à cette étape.');}
+            Delivery::transition($id,'Chargement','Chargement démarré par le chauffeur');return 'Chargement démarré.';
+        }
         if($action==='loaded'){if($mission['status']!=='Chargement'){throw new RuntimeException('La fin du chargement ne peut pas être confirmée à cette étape.');}Delivery::transition($id,'Chargée','Chargement terminé et contrôlé par le chauffeur');return 'Chargement confirmé. La mission peut démarrer.';}
         if($action==='start'){
             if($mission['status']==='Chargée'){Delivery::transition($id,'Partie','Mission démarrée par le chauffeur');Delivery::transition($id,'En transit','Chauffeur en route');return 'Mission démarrée.';}
@@ -53,7 +59,7 @@ final class DriverMission
 
     public static function nextAction(string $status): ?array
     {
-        $actions=['Brouillon'=>['action'=>'accept','label'=>'Accepter la mission','icon'=>'clipboard-check'],'Affectée'=>['action'=>'accept','label'=>'Accepter la mission','icon'=>'clipboard-check'],'À préparer'=>['action'=>'prepare','label'=>'Confirmer la préparation','icon'=>'list-checks'],'Prête'=>['action'=>'load','label'=>'Commencer le chargement','icon'=>'package-open'],'Chargement'=>['action'=>'loaded','label'=>'Confirmer le chargement','icon'=>'package-check'],'Chargée'=>['action'=>'start','label'=>'Confirmer le départ','icon'=>'navigation'],'Partie'=>['action'=>'start','label'=>'Confirmer le départ','icon'=>'navigation'],'En transit'=>['action'=>'arrive','label'=>'Confirmer mon arrivée','icon'=>'map-pin-check'],'Arrivée'=>['action'=>'unload','label'=>'Commencer le déchargement','icon'=>'package-open']];return $actions[$status]??null;
+        $actions=['Brouillon'=>['action'=>'load','label'=>'Commencer le chargement','icon'=>'package-open'],'Affectée'=>['action'=>'load','label'=>'Commencer le chargement','icon'=>'package-open'],'À préparer'=>['action'=>'load','label'=>'Commencer le chargement','icon'=>'package-open'],'Prête'=>['action'=>'load','label'=>'Commencer le chargement','icon'=>'package-open'],'Chargement'=>['action'=>'loaded','label'=>'Confirmer le chargement','icon'=>'package-check'],'Chargée'=>['action'=>'start','label'=>'Confirmer le départ','icon'=>'navigation'],'Partie'=>['action'=>'start','label'=>'Confirmer le départ','icon'=>'navigation'],'En transit'=>['action'=>'arrive','label'=>'Confirmer mon arrivée','icon'=>'map-pin-check'],'Arrivée'=>['action'=>'unload','label'=>'Commencer le déchargement','icon'=>'package-open']];return $actions[$status]??null;
     }
 
     public static function confirmUnloading(int $id,array $rows): string

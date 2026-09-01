@@ -52,6 +52,27 @@ final class Delivery
         $pdo=Database::connection();$pdo->beginTransaction();try{$s=$pdo->prepare('SELECT * FROM deliveries WHERE id=:id FOR UPDATE');$s->execute(['id'=>$id]);$d=$s->fetch();if(!$d){throw new RuntimeException('Livraison introuvable.');}$from=$d['status'];self::assertTransition($d,$target,$comment);$beforeIncident=$target==='Incident'?$from:($from==='Incident'&&$target!== 'Annulée'?null:$d['status_before_incident']);$fields='status=:status,status_before_incident=:before_incident,updated_by=:user';$params=['status'=>$target,'before_incident'=>$beforeIncident,'user'=>Auth::id(),'id'=>$id];if($target==='Livrée'){$fields.=',delivered_at=NOW()';}if($target==='Clôturée'){$fields.=',closed_at=NOW()';}if($target==='Annulée'){$fields.=',cancellation_reason=:reason';$params['reason']=$comment;}$pdo->prepare('UPDATE deliveries SET '.$fields.' WHERE id=:id')->execute($params);self::logStatus($pdo,$id,$from,$target,$comment);self::syncResources($pdo,$id,$target,$d);self::syncOperationalHistory($pdo,$d,$target);$pdo->commit();return ['from'=>$from,'to'=>$target];}catch(Throwable $e){if($pdo->inTransaction()){$pdo->rollBack();}throw $e;}
     }
 
+    public static function rollbackStatus(int $id,string $target,string $comment): array
+    {
+        $comment=trim($comment);if(mb_strlen($comment)<3){throw new RuntimeException('Le motif de la correction est obligatoire.');}
+        $targetIndex=array_search($target,self::FLOW,true);if($targetIndex===false||in_array($target,['Livrée','Clôturée'],true)){throw new RuntimeException('Le statut de retour est invalide.');}
+        $pdo=Database::connection();$pdo->beginTransaction();try{
+            $statement=$pdo->prepare('SELECT * FROM deliveries WHERE id=:id FOR UPDATE');$statement->execute(['id'=>$id]);$delivery=$statement->fetch();if(!$delivery){throw new RuntimeException('Livraison introuvable.');}
+            $currentIndex=array_search($delivery['status'],self::FLOW,true);if($currentIndex!==false&&$targetIndex>=$currentIndex){throw new RuntimeException('Sélectionnez un statut réellement antérieur.');}
+            if($target!=='Brouillon'&&(!$delivery['driver_id']||!$delivery['vehicle_id'])){throw new RuntimeException('Un chauffeur et un véhicule sont requis pour ce statut.');}
+            $pods=$pdo->prepare('SELECT COUNT(*) FROM delivery_pods WHERE delivery_id=:id');$pods->execute(['id'=>$id]);if((int)$pods->fetchColumn()>0){throw new RuntimeException('Retour impossible : un bon de livraison existe déjà.');}
+            $pdo->prepare('UPDATE deliveries SET status=:status,status_before_incident=NULL,cancellation_reason=NULL,delivered_at=NULL,closed_at=NULL,updated_by=:user WHERE id=:id')->execute(['status'=>$target,'user'=>Auth::id(),'id'=>$id]);
+            if($targetIndex<array_search('Arrivée',self::FLOW,true)){$pdo->prepare("UPDATE delivery_destinations SET status='À livrer',arrived_at=NULL,delivered_at=NULL WHERE delivery_id=:id AND status<>'Livrée'")->execute(['id'=>$id]);}
+            if($targetIndex<array_search('Partie',self::FLOW,true)){$pdo->prepare('DELETE FROM vehicle_delivery_history WHERE delivery_reference=:reference')->execute(['reference'=>$delivery['reference']]);$pdo->prepare('DELETE FROM driver_missions WHERE mission_reference=:reference')->execute(['reference'=>$delivery['reference']]);}
+            self::logStatus($pdo,$id,$delivery['status'],$target,'Correction administrateur : '.$comment);self::syncResources($pdo,$id,$target,$delivery);$pdo->commit();return ['from'=>$delivery['status'],'to'=>$target];
+        }catch(Throwable $e){if($pdo->inTransaction()){$pdo->rollBack();}throw $e;}
+    }
+
+    public static function rollbackTargets(array $delivery): array
+    {
+        if(!empty($delivery['pods'])){return [];}$currentIndex=array_search($delivery['status'],self::FLOW,true);$limit=$currentIndex===false?array_search('Livrée',self::FLOW,true):$currentIndex;return array_slice(self::FLOW,0,(int)$limit);
+    }
+
     public static function allowedNext(array $delivery): array
     {
         $current=$delivery['status'];if(in_array($current,['Clôturée','Annulée'],true)){return [];}if($current==='Incident'){return array_values(array_filter([$delivery['status_before_incident']??null,'Annulée']));}$index=array_search($current,self::FLOW,true);$next=$index!==false&&isset(self::FLOW[$index+1])?[self::FLOW[$index+1]]:[];$next=array_values(array_filter($next,function($status){return $status!=='Livrée';}));if(!in_array($current,['Livrée','Clôturée'],true)){$next[]='Annulée';}return array_values(array_unique($next));
