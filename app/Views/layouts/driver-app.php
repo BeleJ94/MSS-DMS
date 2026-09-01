@@ -19,6 +19,7 @@ $user = Auth::user();
     <link rel="icon" href="<?= $baseUrl ?>/assets/icons/driver-app.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="<?= $baseUrl ?>/assets/icons/driver-app.svg">
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/driver-app.css?v=20260811-2">
+    <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/driver-connectivity.css?v=20260901-1">
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/driver-missions.css?v=20260820-4">
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/driver-location.css">
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/driver-pod.css">
@@ -61,10 +62,10 @@ $user = Auth::user();
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-<script>window.MSS_DRIVER_APP=<?= json_encode(['baseUrl' => $baseUrl, 'csrf' => Csrf::token(), 'activeMissionId' => (int) ($activeMissionId ?? 0), 'build' => '20260901-3'], JSON_UNESCAPED_SLASHES) ?>;</script>
-<script src="<?= $baseUrl ?>/assets/js/driver-tracking.js?v=20260901-3"></script>
+<script>window.MSS_DRIVER_APP=<?= json_encode(['baseUrl' => $baseUrl, 'csrf' => Csrf::token(), 'activeMissionId' => (int) ($activeMissionId ?? 0), 'build' => '20260901-4'], JSON_UNESCAPED_SLASHES) ?>;</script>
+<script src="<?= $baseUrl ?>/assets/js/driver-tracking.js?v=20260901-4"></script>
 <script src="<?= $baseUrl ?>/assets/js/driver-app.js?v=20260901-2"></script>
-<script src="<?= $baseUrl ?>/assets/js/driver-gps-diagnostics.js?v=20260901-3"></script>
+<script src="<?= $baseUrl ?>/assets/js/driver-gps-diagnostics.js?v=20260901-4"></script>
 <script src="<?= $baseUrl ?>/assets/js/driver-pod.js?v=20260901-1"></script>
 <script src="<?= $baseUrl ?>/assets/js/driver-incident.js"></script>
 </body>

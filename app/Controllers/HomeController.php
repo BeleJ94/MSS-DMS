@@ -25,6 +25,7 @@ final class HomeController extends Controller
 
     public function health(Request $request): Response
     {
+        if(session_status()===PHP_SESSION_ACTIVE){session_write_close();}
         $database = 'unavailable';
         try {
             Database::connection()->query('SELECT 1');

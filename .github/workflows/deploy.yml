@@ -21,9 +21,8 @@ jobs:
             cd /var/www/vhosts/belej-erp.com/mss.belej-erp.com/
             git pull origin main
 
-            # (Optionnel) Commandes post-déploiement
-            # php migrate.php
-            # composer install --no-dev
+            # Appliquer systématiquement les migrations versionnées après le code.
+            php scripts/migrate.php
 
             # Correction des permissions
             sudo chown -R www-data:www-data .

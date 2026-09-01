@@ -119,6 +119,14 @@ vm.runInNewContext(fs.readFileSync(__dirname + '/../public/assets/js/driver-trac
     allSentPositions = sentPayloads.reduce((rows, payload) => rows.concat(payload.body.positions || []), []);
     expect(allSentPositions.length >= 2, 'la capture périodique ajoute un nouveau point');
     expect(new Set(allSentPositions.map(row => row.position_id)).size === allSentPositions.length, 'chaque position PWA possède un identifiant unique');
+    const callsBeforeBatch = sentPayloads.length;
+    for (let batchIndex = 0; batchIndex < 60; batchIndex++) {
+        indexedPositions.set('batch-valid-' + batchIndex, { mission_id: 42, position_id: 'batch-valid-' + batchIndex, latitude: -11.6 + batchIndex * 0.00001, longitude: 27.5, accuracy: 7, captured_at: new Date(Date.now() + batchIndex).toISOString() });
+    }
+    expect(await context.MSSGps.flush(), 'soixante positions valides sont synchronisées par lots');
+    const batchPayloads = sentPayloads.slice(callsBeforeBatch);
+    expect(batchPayloads.length === 3 && batchPayloads.every(payload => payload.body.positions.length <= 25), 'soixante positions utilisent exactement trois requêtes au serveur');
+    expect(!Array.from(indexedPositions.keys()).some(key => key.indexOf('batch-valid-') === 0), 'toutes les positions du lot sont retirées après confirmation');
     rejectedPositionIds.add('old-rejected');
     indexedPositions.set('old-rejected', { mission_id: 1, position_id: 'old-rejected', latitude: -11.7, longitude: 27.4, accuracy: 8, captured_at: new Date(Date.now() - 60000).toISOString() });
     indexedPositions.set('current-valid', { mission_id: 42, position_id: 'current-valid', latitude: -11.6, longitude: 27.5, accuracy: 7, captured_at: new Date().toISOString() });

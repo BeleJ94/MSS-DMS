@@ -66,6 +66,8 @@ try {
         'heading' => 91.5,
         'captured_at' => gmdate('c'),
     ];
+    $gpsUniqueIndexes=$pdo->query("SELECT GROUP_CONCAT(column_name ORDER BY seq_in_index SEPARATOR ',') columns_list,SUM(sub_part IS NOT NULL) prefix_parts FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='delivery_gps_positions' AND non_unique=0 AND index_name<>'PRIMARY' GROUP BY index_name ORDER BY index_name")->fetchAll();
+    expectGps(count($gpsUniqueIndexes)===1&&$gpsUniqueIndexes[0]['columns_list']==='delivery_id,driver_id,device_position_id'&&(int)$gpsUniqueIndexes[0]['prefix_parts']===0,'la table autorise plusieurs positions distinctes par livraison');
     $first = GpsTracking::recordBatch($deliveryId, [$position]);
     expectGps($first['accepted'] === 1, 'la première position est acceptée');
     expectGps($first['total_positions'] === 1, 'le serveur confirme le total après la première position');
