@@ -1,3 +1,5 @@
+-- Reprise possible après une exécution partielle : conserver les destinations
+-- et preuves existantes, ajouter uniquement les éléments de schéma manquants.
 CREATE TABLE IF NOT EXISTS delivery_destinations (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     delivery_id BIGINT UNSIGNED NOT NULL,
@@ -34,14 +36,93 @@ WHERE NOT EXISTS (SELECT 1 FROM delivery_destinations x WHERE x.delivery_id=d.id
 
 ALTER TABLE deliveries MODIFY client_site_id BIGINT UNSIGNED NULL;
 
-ALTER TABLE delivery_goods ADD COLUMN destination_id BIGINT UNSIGNED NULL AFTER delivery_id;
-ALTER TABLE delivery_goods ADD KEY idx_delivery_goods_destination (destination_id);
-ALTER TABLE delivery_goods ADD CONSTRAINT fk_delivery_goods_destination FOREIGN KEY (destination_id) REFERENCES delivery_destinations (id) ON DELETE SET NULL;
+SET @migration_schema_sql = IF(
+    EXISTS(SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'delivery_goods'
+          AND column_name = 'destination_id'),
+    'DO 0',
+    'ALTER TABLE delivery_goods ADD COLUMN destination_id BIGINT UNSIGNED NULL AFTER delivery_id'
+);
+PREPARE migration_schema_statement FROM @migration_schema_sql;
+EXECUTE migration_schema_statement;
+DEALLOCATE PREPARE migration_schema_statement;
 
-ALTER TABLE delivery_pods ADD KEY idx_pod_delivery (delivery_id);
-ALTER TABLE delivery_pods DROP INDEX uq_delivery_pod;
-ALTER TABLE delivery_pods ADD COLUMN destination_id BIGINT UNSIGNED NULL AFTER delivery_id;
+SET @migration_schema_sql = IF(
+    EXISTS(SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE() AND table_name = 'delivery_goods'
+          AND index_name = 'idx_delivery_goods_destination'),
+    'DO 0',
+    'ALTER TABLE delivery_goods ADD KEY idx_delivery_goods_destination (destination_id)'
+);
+PREPARE migration_schema_statement FROM @migration_schema_sql;
+EXECUTE migration_schema_statement;
+DEALLOCATE PREPARE migration_schema_statement;
+
+SET @migration_schema_sql = IF(
+    EXISTS(SELECT 1 FROM information_schema.table_constraints
+        WHERE table_schema = DATABASE() AND table_name = 'delivery_goods'
+          AND constraint_name = 'fk_delivery_goods_destination'),
+    'DO 0',
+    'ALTER TABLE delivery_goods ADD CONSTRAINT fk_delivery_goods_destination FOREIGN KEY (destination_id) REFERENCES delivery_destinations (id) ON DELETE SET NULL'
+);
+PREPARE migration_schema_statement FROM @migration_schema_sql;
+EXECUTE migration_schema_statement;
+DEALLOCATE PREPARE migration_schema_statement;
+
+
+SET @migration_schema_sql = IF(
+    EXISTS(SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE() AND table_name = 'delivery_pods'
+          AND index_name = 'idx_pod_delivery'),
+    'DO 0',
+    'ALTER TABLE delivery_pods ADD KEY idx_pod_delivery (delivery_id)'
+);
+PREPARE migration_schema_statement FROM @migration_schema_sql;
+EXECUTE migration_schema_statement;
+DEALLOCATE PREPARE migration_schema_statement;
+
+SET @migration_schema_sql = IF(
+    EXISTS(SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE() AND table_name = 'delivery_pods'
+          AND index_name = 'uq_delivery_pod'),
+    'ALTER TABLE delivery_pods DROP INDEX uq_delivery_pod',
+    'DO 0'
+);
+PREPARE migration_schema_statement FROM @migration_schema_sql;
+EXECUTE migration_schema_statement;
+DEALLOCATE PREPARE migration_schema_statement;
+
+SET @migration_schema_sql = IF(
+    EXISTS(SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'delivery_pods'
+          AND column_name = 'destination_id'),
+    'DO 0',
+    'ALTER TABLE delivery_pods ADD COLUMN destination_id BIGINT UNSIGNED NULL AFTER delivery_id'
+);
+PREPARE migration_schema_statement FROM @migration_schema_sql;
+EXECUTE migration_schema_statement;
+DEALLOCATE PREPARE migration_schema_statement;
+
 UPDATE delivery_pods p SET destination_id=(SELECT dd.id FROM delivery_destinations dd WHERE dd.delivery_id=p.delivery_id ORDER BY dd.stop_order LIMIT 1) WHERE destination_id IS NULL;
 ALTER TABLE delivery_pods MODIFY destination_id BIGINT UNSIGNED NOT NULL;
-ALTER TABLE delivery_pods ADD UNIQUE KEY uq_destination_pod (destination_id);
-ALTER TABLE delivery_pods ADD CONSTRAINT fk_pod_destination FOREIGN KEY (destination_id) REFERENCES delivery_destinations (id) ON DELETE CASCADE;
+SET @migration_schema_sql = IF(
+    EXISTS(SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE() AND table_name = 'delivery_pods'
+          AND index_name = 'uq_destination_pod'),
+    'DO 0',
+    'ALTER TABLE delivery_pods ADD UNIQUE KEY uq_destination_pod (destination_id)'
+);
+PREPARE migration_schema_statement FROM @migration_schema_sql;
+EXECUTE migration_schema_statement;
+DEALLOCATE PREPARE migration_schema_statement;
+
+SET @migration_schema_sql = IF(
+    EXISTS(SELECT 1 FROM information_schema.table_constraints
+        WHERE table_schema = DATABASE() AND table_name = 'delivery_pods'
+          AND constraint_name = 'fk_pod_destination'),
+    'DO 0',
+    'ALTER TABLE delivery_pods ADD CONSTRAINT fk_pod_destination FOREIGN KEY (destination_id) REFERENCES delivery_destinations (id) ON DELETE CASCADE'
+);
+PREPARE migration_schema_statement FROM @migration_schema_sql;
+EXECUTE migration_schema_statement;
+DEALLOCATE PREPARE migration_schema_statement;
