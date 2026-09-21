@@ -18,8 +18,13 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            set -eu
             cd /var/www/vhosts/belej-erp.com/mss.belej-erp.com/
-            git pull origin main
+            git pull --ff-only origin main
+            git log -1 --format='%h %s'
+
+            # Vérifier que les routes mobiles sont présentes dans le code déployé.
+            php scripts/test_mobile_api.php
 
             # Appliquer systématiquement les migrations versionnées après le code.
             php scripts/migrate.php
@@ -29,4 +34,32 @@ jobs:
             sudo find . -type d -exec chmod 755 {} \;
             sudo find . -type f -exec chmod 644 {} \;
 
-            echo "✅ Déploiement de MSS-DMS terminé avec succès !"
+            echo "Code et migrations appliqués ; vérification HTTP à suivre."
+
+      - name: Vérifier l’API mobile en ligne
+        run: |
+          python3 - <<'PY'
+          import json
+          import urllib.error
+          import urllib.request
+
+          base = 'https://mss.belej-erp.com'
+          checks = [
+              ('/api/health', 200, lambda data: data.get('database') == 'ok'),
+              ('/api/mobile/bootstrap', 200, lambda data: isinstance(data.get('csrf_token'), str) and len(data['csrf_token']) == 64),
+              ('/api/mobile/me', 401, lambda data: data.get('success') is False and bool(data.get('message'))),
+          ]
+          for path, expected_status, validate in checks:
+              request = urllib.request.Request(base + path, headers={'Accept': 'application/json', 'Cache-Control': 'no-cache'})
+              try:
+                  response = urllib.request.urlopen(request, timeout=30)
+              except urllib.error.HTTPError as error:
+                  response = error
+              with response:
+                  if response.status != expected_status or response.headers.get_content_type() != 'application/json':
+                      raise SystemExit(f'Échec {path} : HTTP {response.status}, type {response.headers.get_content_type()}')
+                  if not validate(json.load(response)):
+                      raise SystemExit(f'Échec {path} : réponse JSON inattendue')
+              print(f'OK {path} : HTTP {expected_status}')
+          print('Déploiement vérifié : site, base et routes mobiles disponibles.')
+          PY
