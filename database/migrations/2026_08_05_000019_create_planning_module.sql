@@ -1,7 +1,37 @@
-ALTER TABLE deliveries
-    ADD COLUMN planning_duration_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 120 AFTER scheduled_at,
-    ADD KEY idx_deliveries_driver_schedule (driver_id, scheduled_at, status),
-    ADD KEY idx_deliveries_vehicle_schedule (vehicle_id, scheduled_at, status);
+-- Une exécution interrompue peut avoir créé la colonne ou les index sans
+-- enregistrer la migration. Compléter chaque élément manquant séparément.
+SET @planning_column_sql = IF(
+    EXISTS(SELECT 1 FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = 'deliveries'
+          AND column_name = 'planning_duration_minutes'),
+    'DO 0',
+    'ALTER TABLE deliveries ADD COLUMN planning_duration_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 120 AFTER scheduled_at'
+);
+PREPARE planning_column_statement FROM @planning_column_sql;
+EXECUTE planning_column_statement;
+DEALLOCATE PREPARE planning_column_statement;
+
+SET @planning_driver_index_sql = IF(
+    EXISTS(SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE() AND table_name = 'deliveries'
+          AND index_name = 'idx_deliveries_driver_schedule'),
+    'DO 0',
+    'ALTER TABLE deliveries ADD KEY idx_deliveries_driver_schedule (driver_id, scheduled_at, status)'
+);
+PREPARE planning_driver_index_statement FROM @planning_driver_index_sql;
+EXECUTE planning_driver_index_statement;
+DEALLOCATE PREPARE planning_driver_index_statement;
+
+SET @planning_vehicle_index_sql = IF(
+    EXISTS(SELECT 1 FROM information_schema.statistics
+        WHERE table_schema = DATABASE() AND table_name = 'deliveries'
+          AND index_name = 'idx_deliveries_vehicle_schedule'),
+    'DO 0',
+    'ALTER TABLE deliveries ADD KEY idx_deliveries_vehicle_schedule (vehicle_id, scheduled_at, status)'
+);
+PREPARE planning_vehicle_index_statement FROM @planning_vehicle_index_sql;
+EXECUTE planning_vehicle_index_statement;
+DEALLOCATE PREPARE planning_vehicle_index_statement;
 
 CREATE TABLE IF NOT EXISTS delivery_planning_history (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
