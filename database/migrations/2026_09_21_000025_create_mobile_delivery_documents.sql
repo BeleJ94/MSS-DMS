@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS delivery_pod_documents (
+    pod_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+    pdf_data MEDIUMBLOB NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_mobile_document_pod FOREIGN KEY (pod_id) REFERENCES delivery_pods(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

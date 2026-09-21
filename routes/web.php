@@ -98,3 +98,5 @@ $app->router()->get('/live-tracking', [LiveTrackingController::class, 'index'], 
 $app->router()->get('/api/live-tracking', [LiveTrackingController::class, 'data'], [Authenticate::class]);
 $app->router()->get('/api/live-tracking/{id}/route', [LiveTrackingController::class, 'route'], [Authenticate::class]);
 $app->router()->get('/api/health', [HomeController::class, 'health']);
+
+require __DIR__ . '/mobile.php';

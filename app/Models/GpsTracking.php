@@ -22,7 +22,7 @@ final class GpsTracking
     public static function recordBatch(int $deliveryId,array $positions,string $source='pwa'): array
     {
         if($positions===[]||count($positions)>100){throw new RuntimeException('Le lot doit contenir entre 1 et 100 positions.');}
-        $validated=array_map([self::class,'validate'],$positions);$pdo=Database::connection();$pdo->beginTransaction();
+        $validated=array_map([self::class,'validate'],$positions);$pdo=Database::connection();$ownsTransaction=!$pdo->inTransaction();if($ownsTransaction){$pdo->beginTransaction();}
         try{
             $missionStatement=$pdo->prepare('SELECT d.id,d.driver_id,d.status,d.delivered_at,d.closed_at FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id WHERE d.id=:delivery AND dr.user_id=:user');
             $missionStatement->execute(['delivery'=>$deliveryId,'user'=>Auth::id()]);$mission=$missionStatement->fetch();
@@ -41,13 +41,13 @@ final class GpsTracking
                     $duplicates++;$duplicateIds[]=$position['position_id'];
                 }
             }
-            $pdo->commit();
+            if($ownsTransaction){$pdo->commit();}
             $positionIds=array_column($validated,'position_id');$placeholders=implode(',',array_fill(0,count($positionIds),'?'));
             $verify=$pdo->prepare('SELECT device_position_id FROM delivery_gps_positions WHERE delivery_id=? AND driver_id=? AND device_position_id IN ('.$placeholders.')');$verify->execute(array_merge([$deliveryId,(int)$mission['driver_id']],$positionIds));$persistedIds=array_map('strval',$verify->fetchAll(\PDO::FETCH_COLUMN));
             $count=$pdo->prepare('SELECT COUNT(*) FROM delivery_gps_positions WHERE delivery_id=:delivery');$count->execute(['delivery'=>$deliveryId]);$total=(int)$count->fetchColumn();
             if(count($persistedIds)!==count($positionIds)){throw new RuntimeException('La base n’a pas confirmé toutes les positions après validation de la transaction.');}
             return ['accepted'=>$accepted,'duplicates'=>$duplicates,'total_positions'=>$total,'recorded_ids'=>$recordedIds,'duplicate_ids'=>$duplicateIds,'persisted_ids'=>$persistedIds,'status'=>$mission['status']];
-        }catch(\Throwable $e){if($pdo->inTransaction()){$pdo->rollBack();}throw $e;}
+        }catch(\Throwable $e){if($ownsTransaction&&$pdo->inTransaction()){$pdo->rollBack();}throw $e;}
     }
 
     public static function recentOwned(int $deliveryId,int $limit=60): array

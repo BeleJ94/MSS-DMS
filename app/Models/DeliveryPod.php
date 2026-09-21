@@ -26,7 +26,7 @@ final class DeliveryPod
         if (mb_strlen($observations) > 2000) { throw new RuntimeException('Les observations sont trop longues.'); }
 
         $pdo = Database::connection();
-        $pdo->beginTransaction();
+        $ownsTransaction=!$pdo->inTransaction();if($ownsTransaction){$pdo->beginTransaction();}
         try {
             if($destinationId<=0){$current=$pdo->prepare('SELECT id FROM delivery_destinations WHERE delivery_id=:id AND status="Déchargement" ORDER BY stop_order LIMIT 1');$current->execute(['id'=>$deliveryId]);$destinationId=(int)$current->fetchColumn();}
             $statement = $pdo->prepare('SELECT d.*,dr.user_id,dd.id destination_id,dd.status destination_status,dd.stop_order FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id JOIN delivery_destinations dd ON dd.delivery_id=d.id WHERE d.id=:id AND dd.id=:destination FOR UPDATE');
@@ -65,10 +65,10 @@ final class DeliveryPod
             $comment=$finished?'Toutes les destinations ont été livrées':'Destination '.$delivery['stop_order'].' livrée, route vers la suivante';
             $pdo->prepare('INSERT INTO delivery_status_history (delivery_id,from_status,to_status,comment,changed_by) VALUES (:id,"Déchargement",:status,:comment,:user)')->execute(['id'=>$deliveryId,'status'=>$nextStatus,'comment'=>$comment,'user'=>Auth::id()]);
             if($finished){$pdo->prepare('UPDATE drivers SET status="Disponible",updated_by=:user WHERE id=:id')->execute(['user'=>Auth::id(),'id'=>$delivery['driver_id']]);$pdo->prepare('UPDATE vehicles SET status="Disponible",assigned_driver_id=NULL,updated_by=:user WHERE id=:id')->execute(['user'=>Auth::id(),'id'=>$delivery['vehicle_id']]);$pdo->prepare('UPDATE vehicle_delivery_history SET completed_at=NOW(),status="Livrée" WHERE delivery_reference=:reference')->execute(['reference'=>$delivery['reference']]);$pdo->prepare('UPDATE driver_missions SET completed_at=NOW(),status="Terminée" WHERE mission_reference=:reference')->execute(['reference'=>$delivery['reference']]);}
-            $pdo->commit();
+            if($ownsTransaction){$pdo->commit();}
             return $podId;
         } catch (Throwable $exception) {
-            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            if ($ownsTransaction && $pdo->inTransaction()) { $pdo->rollBack(); }
             if ((string) $exception->getCode() === '23000') { throw new RuntimeException('Une preuve de livraison existe déjà pour cette mission.'); }
             throw $exception;
         }

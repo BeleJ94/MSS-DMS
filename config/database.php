@@ -9,7 +9,7 @@ return [
     'port' => Env::get('DB_PORT', '3306'),
     'database' => Env::get('DB_DATABASE', 'mss_dms'),
     'username' => Env::get('DB_USERNAME', 'root'),
-    'password' => Env::get('DB_PASSWORD', ''),
+    'password' => Env::get('DB_PASSWORD', 'ServBay.dev'),
     'charset' => Env::get('DB_CHARSET', 'utf8mb4'),
 ];
 

@@ -36,7 +36,7 @@ final class PodController extends Controller
         $pod = DeliveryPod::findByDelivery($deliveryId);
         if (!$pod) { return new Response('Preuve de livraison introuvable.', 404, ['Content-Type' => 'text/plain; charset=utf-8']); }
         $filename = preg_replace('/[^A-Za-z0-9_-]/', '-', 'POD-'.$pod['reference']).'.pdf';
-        return new Response(PodPdf::render($pod), 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="'.$filename.'"', 'Cache-Control' => 'private, no-store']);
+        return new Response((\App\Models\MobileMission::document((int)$pod['id']) ?? PodPdf::render($pod)), 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline; filename="'.$filename.'"', 'Cache-Control' => 'private, no-store']);
     }
 
     public function destinationPdf(Request $request): Response
@@ -45,7 +45,7 @@ final class PodController extends Controller
         if(!DeliveryPod::canAccess($deliveryId)){return new Response('Accès refusé.',403,['Content-Type'=>'text/plain; charset=utf-8']);}
         $pod=DeliveryPod::findByDestination($deliveryId,$destinationId);if(!$pod){return new Response('Bon de livraison introuvable.',404,['Content-Type'=>'text/plain; charset=utf-8']);}
         $filename=preg_replace('/[^A-Za-z0-9_-]/','-','BL-'.$pod['reference'].'-'.str_pad((string)$pod['stop_order'],2,'0',STR_PAD_LEFT)).'.pdf';
-        return new Response(PodPdf::render($pod),200,['Content-Type'=>'application/pdf','Content-Disposition'=>'inline; filename="'.$filename.'"','Cache-Control'=>'private, no-store']);
+        return new Response((\App\Models\MobileMission::document((int)$pod['id']) ?? PodPdf::render($pod)),200,['Content-Type'=>'application/pdf','Content-Disposition'=>'inline; filename="'.$filename.'"','Cache-Control'=>'private, no-store']);
     }
 
     private function baseUrl(): string { return rtrim((string) \App\Core\Env::get('APP_URL', ''), '/'); }
