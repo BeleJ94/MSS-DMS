@@ -44,6 +44,20 @@ final class MobileDriverController extends Controller
             return $this->json(['message'=>'Demandez au dispatching de relier votre compte à une fiche chauffeur active.'],403);
         }
         Database::connection()->prepare('UPDATE users SET last_login_at=NOW() WHERE id=:id')->execute(['id'=>Auth::id()]);
+        $result=['user'=>Auth::user(),'driver'=>DriverMission::driver(),'csrf_token'=>Csrf::token()];
+        if($request->input('remember_device')===true){
+            \App\Models\MobileSession::revokeCurrent();
+            $result['mobile_token']=\App\Models\MobileSession::issue((int)Auth::id());
+        }
+        return $this->json($result);
+    }
+
+    public function resume(Request $request): Response
+    {
+        $token=$request->input('mobile_token','');
+        if(!is_string($token) || !\App\Models\MobileSession::resume($token)){
+            return $this->json(['message'=>'Votre connexion a expiré. Reconnectez-vous.'],401);
+        }
         return $this->me($request);
     }
 
@@ -56,6 +70,7 @@ final class MobileDriverController extends Controller
     {
         $user=Auth::user();
         LoginLogger::write(Auth::id(),(string)$user['email'],true,'logout');
+        \App\Models\MobileSession::revokeCurrent();
         Auth::logout();
         return $this->json(['success'=>true]);
     }

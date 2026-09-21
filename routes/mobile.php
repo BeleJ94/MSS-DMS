@@ -20,3 +20,5 @@ $app->router()->post('/api/mobile/missions/{id}/incident',[IncidentController::c
 
 $app->router()->post('/api/mobile/missions/{id}/start',[MobileDriverController::class,'start'],[MobileAuthenticate::class,VerifyCsrf::class]);
 $app->router()->post('/api/mobile/missions/{id}/deliver',[MobileDriverController::class,'deliver'],[MobileAuthenticate::class,VerifyCsrf::class]);
+
+$app->router()->post('/api/mobile/resume',[MobileDriverController::class,'resume'],[VerifyCsrf::class]);

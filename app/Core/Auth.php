@@ -27,8 +27,17 @@ final class Auth
 
         Session::regenerate();
         Session::put('auth_user_id', (int) $user['id']);
+        Session::forget('mobile_session_id');
         self::$user = null;
         return true;
+    }
+
+    // Called only after the server has verified a persistent device credential.
+    public static function restoreMobileIdentity(int $id): void
+    {
+        Session::regenerate();
+        Session::put('auth_user_id',$id);
+        self::$user=null;
     }
 
     public static function check(): bool { return self::id() !== null; }
@@ -41,6 +50,10 @@ final class Auth
 
     public static function user(): ?array
     {
+        if(Session::get('mobile_session_id') && !\App\Models\MobileSession::validCurrent()) {
+            self::logout();
+            return null;
+        }
         if (self::$user !== null) {
             return self::$user ?: null;
         }

@@ -11,7 +11,7 @@ final class MobileAuthenticate
 {
     public function handle(Request $request): ?Response
     {
-        if (!Auth::user()) {
+        if (!Auth::user() || !\App\Models\MobileSession::validCurrent()) {
             return Response::json(['success'=>false,'message'=>'Session expirée. Reconnectez-vous.'],401);
         }
         if (!Auth::can('driver_app.access') || !\App\Models\DriverMission::driver()) {
