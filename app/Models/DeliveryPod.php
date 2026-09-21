@@ -12,17 +12,18 @@ use Throwable;
 
 final class DeliveryPod
 {
-    public static function createOwned(int $deliveryId, int $destinationId, array $data, array $photo): int
+    public static function createOwned(int $deliveryId, int $destinationId, array $data, array $photo, bool $declaration = false): int
     {
-        $recipient = trim((string) ($data['recipient_name'] ?? ''));
+        $recipient = $declaration ? 'Non renseigné' : trim((string) ($data['recipient_name'] ?? ''));
         if (mb_strlen($recipient) < 2 || mb_strlen($recipient) > 160) {
             throw new RuntimeException('Renseignez le nom complet du réceptionnaire.');
         }
         $latitude = $data['latitude'] ?? null; $longitude = $data['longitude'] ?? null; $accuracy = $data['accuracy'] ?? null;
-        if (!is_numeric($latitude) || (float) $latitude < -90 || (float) $latitude > 90 || !is_numeric($longitude) || (float) $longitude < -180 || (float) $longitude > 180 || !is_numeric($accuracy) || (float) $accuracy < 0 || (float) $accuracy > 10000) {
+        $withoutGps = $declaration && $latitude === null && $longitude === null && $accuracy === null;
+        if (!$withoutGps && (!is_numeric($latitude) || (float) $latitude < -90 || (float) $latitude > 90 || !is_numeric($longitude) || (float) $longitude < -180 || (float) $longitude > 180 || !is_numeric($accuracy) || (float) $accuracy < 0 || (float) $accuracy > 10000)) {
             throw new RuntimeException('La position GPS de la preuve est invalide.');
         }
-        $observations = trim((string) ($data['observations'] ?? ''));
+        $observations = $declaration ? 'Livraison déclarée par le chauffeur — sans confirmation du réceptionnaire.' : trim((string) ($data['observations'] ?? ''));
         if (mb_strlen($observations) > 2000) { throw new RuntimeException('Les observations sont trop longues.'); }
 
         $pdo = Database::connection();
@@ -45,13 +46,13 @@ final class DeliveryPod
             $insert->bindValue(':observations', $observations !== '' ? $observations : null);
             $insert->bindValue(':signature_mime', null, PDO::PARAM_NULL);
             $insert->bindValue(':signature_data', null, PDO::PARAM_NULL);
-            $insert->bindValue(':photo_mime', $photo['mime']);
-            $insert->bindValue(':photo_data', $photo['data'], PDO::PARAM_LOB);
+            $insert->bindValue(':photo_mime', $photo['mime'] ?? null);
+            $insert->bindValue(':photo_data', $photo['data'] ?? null, isset($photo['data']) ? PDO::PARAM_LOB : PDO::PARAM_NULL);
             $insert->bindValue(':note_mime', null, PDO::PARAM_NULL);
             $insert->bindValue(':note_data', null, PDO::PARAM_NULL);
-            $insert->bindValue(':latitude', (float) $latitude);
-            $insert->bindValue(':longitude', (float) $longitude);
-            $insert->bindValue(':accuracy', (float) $accuracy);
+            $insert->bindValue(':latitude', $withoutGps ? null : (float) $latitude);
+            $insert->bindValue(':longitude', $withoutGps ? null : (float) $longitude);
+            $insert->bindValue(':accuracy', $withoutGps ? null : (float) $accuracy);
             $insert->bindValue(':driver', (int) $delivery['driver_id'], PDO::PARAM_INT);
             $insert->bindValue(':vehicle', (int) $delivery['vehicle_id'], PDO::PARAM_INT);
             $insert->bindValue(':user', (int) Auth::id(), PDO::PARAM_INT);

@@ -1,0 +1,1 @@
+ALTER TABLE delivery_pods MODIFY delivery_photo_mime VARCHAR(40) NULL DEFAULT NULL, MODIFY delivery_photo_data MEDIUMBLOB NULL, MODIFY latitude DECIMAL(10,7) NULL, MODIFY longitude DECIMAL(11,7) NULL, MODIFY accuracy_m DECIMAL(10,2) NULL;

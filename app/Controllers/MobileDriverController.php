@@ -105,9 +105,10 @@ final class MobileDriverController extends Controller
     public function deliver(Request $request): Response
     {
         try {
-            $photo=\App\Core\PodUpload::photo($request->file('delivery_photo'),true,'La photo de livraison');
+            $declaration = $request->input('confirmed') === true;
+            $photo = $declaration ? [] : \App\Core\PodUpload::photo($request->file('delivery_photo'),true,'La photo de livraison');
             $id=(int)$request->param('id');$destination=(int)$request->input('destination_id',0);
-            $result=\App\Models\MobileMission::deliver($id,$destination,$request->all(),$photo);
+            $result=\App\Models\MobileMission::deliver($id,$destination,$request->all(),$photo,$declaration);
             return $this->json(['success'=>true,'message'=>'Livraison confirmée. Bon de livraison créé.','already_delivered'=>$result['already_delivered'],'pdf_url'=>rtrim((string)\App\Core\Env::get('APP_URL',''),'/').'/deliveries/'.$id.'/destinations/'.$destination.'/pod.pdf']);
         } catch(\Throwable $e) {
             return $this->json(['success'=>false,'message'=>$e instanceof \RuntimeException && !($e instanceof \PDOException)?$e->getMessage():'La livraison et son bon n’ont pas pu être enregistrés. Réessayez.'],422);

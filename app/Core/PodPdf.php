@@ -38,7 +38,7 @@ final class PodPdf
         $stream .= self::labelValue(42, 202, 'CHAUFFEUR', trim($pod['driver_first_name'].' '.$pod['driver_last_name']), 245);
         $stream .= self::labelValue(310, 202, 'VÉHICULE', $pod['registration_number'].' · '.trim($pod['vehicle_brand'].' '.$pod['vehicle_model']), 243);
         $stream .= self::labelValue(42, 247, 'RÉCEPTIONNAIRE', (string) $pod['recipient_name'], 245);
-        $stream .= self::labelValue(310, 247, 'POSITION GPS', number_format((float) $pod['latitude'], 6, '.', '').', '.number_format((float) $pod['longitude'], 6, '.', '').' (±'.number_format((float) $pod['accuracy_m'], 0).' m)', 243);
+        $stream .= self::labelValue(310, 247, 'POSITION GPS', ($pod['latitude'] === null ? 'Indisponible' : number_format((float) $pod['latitude'], 6, '.', '').', '.number_format((float) $pod['longitude'], 6, '.', '').' (±'.number_format((float) $pod['accuracy_m'], 0).' m)'), 243);
 
         $stream .= self::text(42, 309, 9, 'CONTRÔLE DES MARCHANDISES · PRÉVU / LIVRÉ', true, [80, 101, 127]);
         $stream .= self::rect(42, 320, 511, 25, [234, 240, 247], true);
@@ -63,6 +63,7 @@ final class PodPdf
         $imageTop = 540;
         $stream .= self::text(42, $imageTop - 13, 9, 'PHOTO À LA LIVRAISON', true, [80, 101, 127]);
         $stream .= self::rect(42, $imageTop, 511, 126, [225, 232, 239], false);
+        if (!isset($images['Photo'])) { $stream .= self::text(54, $imageTop + 30, 10, 'Aucune photo jointe.', false, [80, 101, 127]); }
         if (isset($images['Photo'])) { $stream .= self::image('Photo', $images['Photo'], 54, $imageTop + 8, 487, 110); }
 
         $stream .= self::text(42, 695, 9, 'OBSERVATIONS', true, [80, 101, 127]);
@@ -70,7 +71,7 @@ final class PodPdf
         $observations = trim((string) ($pod['observations'] ?? '')) ?: 'Aucune observation.';
         foreach (self::wrap($observations, 95, 3) as $index => $line) { $stream .= self::text(54, 724 + ($index * 14), 9, $line, false, [35, 50, 72]); }
         $stream .= self::text(42, 801, 8, 'Document généré automatiquement par MSS-DMS · Identifiant POD #'.$pod['id'], false, [116, 128, 149]);
-        $stream .= self::text(553, 801, 8, 'Authentifié par GPS, chauffeur et véhicule', false, [36, 119, 95], 'right');
+        $stream .= self::text(553, 801, 8, 'Enregistré par MSS-DMS', false, [36, 119, 95], 'right');
 
         $contentId = $add('<< /Length '.strlen($stream)." >>\nstream\n".$stream."endstream");
         $xObjects = '';

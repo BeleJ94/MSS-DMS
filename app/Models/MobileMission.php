@@ -43,7 +43,7 @@ final class MobileMission
         } catch(Throwable $e) {if($pdo->inTransaction()){$pdo->rollBack();}throw $e;}
     }
 
-    public static function deliver(int $id,int $destinationId,array $data,array $photo): array
+    public static function deliver(int $id,int $destinationId,array $data,array $photo, bool $declaration = false): array
     {
         if($destinationId<=0){throw new RuntimeException('Choisissez la prochaine destination.');}
         $pdo=Database::connection();$pdo->beginTransaction();
@@ -67,7 +67,7 @@ final class MobileMission
             }
             // Preserve any quantities or anomalies already recorded through the web interface.
             $pdo->prepare('UPDATE delivery_goods SET delivered_quantity=quantity,delivery_condition="Conforme",driver_note="Validation automatique : livraison complète confirmée dans l’application.",checked_at=NOW(),checked_by=:user WHERE delivery_id=:delivery AND destination_id=:destination AND checked_at IS NULL')->execute(['user'=>Auth::id(),'delivery'=>$id,'destination'=>$destinationId]);
-            $podId=DeliveryPod::createOwned($id,$destinationId,$data,$photo);
+            $podId=DeliveryPod::createOwned($id,$destinationId,$data,$photo,$declaration);
             self::ensureDocument($pdo,$id,$destinationId,$podId);
             $pdo->commit();
             return ['pod_id'=>$podId,'already_delivered'=>false];
