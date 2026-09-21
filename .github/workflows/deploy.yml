@@ -4,6 +4,10 @@ on:
   push:
     branches: [ main ]
 
+concurrency:
+  group: mss-production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -20,7 +24,35 @@ jobs:
           script: |
             set -eu
             cd /var/www/vhosts/belej-erp.com/mss.belej-erp.com/
+
+            # Conserver la configuration propre au VPS, sans afficher ses secrets.
+            db_backup_dir=''
+            restore_database_config() {
+              if [ -n "$db_backup_dir" ]; then
+                cp -p "$db_backup_dir/database.php" config/database.php || return 1
+                cmp -s "$db_backup_dir/database.php" config/database.php || return 1
+                rm "$db_backup_dir/database.php" || return 1
+                rmdir "$db_backup_dir" || return 1
+                db_backup_dir=''
+              fi
+            }
+            trap 'restore_database_config || exit 1' EXIT
+            trap 'exit 1' HUP INT TERM
+
+            # Une modification indexée nécessite une intervention explicite.
+            git diff --cached --exit-code --quiet -- config/database.php
+            if ! git diff --exit-code --quiet -- config/database.php; then
+              test -f config/database.php
+              backup_candidate=$(mktemp -d /tmp/mss-db-config.XXXXXX)
+              cp -p config/database.php "$backup_candidate/database.php"
+              cmp -s config/database.php "$backup_candidate/database.php"
+              db_backup_dir=$backup_candidate
+              git checkout -- config/database.php
+              echo "Configuration du VPS sauvegardée pour la mise à jour."
+            fi
+
             git pull --ff-only origin main
+            restore_database_config
             git log -1 --format='%h %s'
 
             # Vérifier que les routes mobiles sont présentes dans le code déployé.
