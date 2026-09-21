@@ -22,8 +22,9 @@ foreach ($files as $file) {
         continue;
     }
 
-    $pdo->beginTransaction();
+    echo "Migration en cours : {$name}\n";
     try {
+        $pdo->beginTransaction();
         $pdo->exec((string) file_get_contents($file));
         $statement = $pdo->prepare('INSERT INTO migrations (migration, batch) VALUES (:migration, :batch)');
         $statement->execute(['migration' => $name, 'batch' => $batch]);
@@ -34,7 +35,7 @@ foreach ($files as $file) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        throw $exception;
+        throw new RuntimeException('Échec de la migration ' . $name . ' : ' . $exception->getMessage(), 0, $exception);
     }
 }
 

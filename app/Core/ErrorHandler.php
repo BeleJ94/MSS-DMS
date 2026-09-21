@@ -24,7 +24,16 @@ final class ErrorHandler
         set_exception_handler(function (Throwable $exception) use ($debug, $logFile): void {
             $entry = sprintf("[%s] %s in %s:%d\n%s\n", date('c'), $exception->getMessage(), $exception->getFile(), $exception->getLine(), $exception->getTraceAsString());
             @error_log($entry, 3, $logFile);
-            http_response_code(500);
+            if (PHP_SAPI === 'cli') {
+                fwrite(STDERR, sprintf("%s: %s in %s:%d\n", get_class($exception), $exception->getMessage(), $exception->getFile(), $exception->getLine()));
+                if ($debug) {
+                    fwrite(STDERR, $exception->getTraceAsString() . "\n");
+                }
+                exit(1);
+            }
+            if (!headers_sent()) {
+                http_response_code(500);
+            }
 
             $title = 'Erreur interne';
             $message = $debug ? $exception->getMessage() : 'Une erreur inattendue est survenue. Réessayez plus tard.';
