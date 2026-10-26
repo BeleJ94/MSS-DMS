@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Database;
 use App\Core\Env;
 use App\Core\Request;
 use App\Core\Response;
@@ -29,7 +30,28 @@ final class DriverAppController extends Controller
     }
     public function action(Request $request): Response
     {
-        if(!Auth::can('driver_app.access')){return $this->json(['success'=>false,'message'=>'Accès refusé.'],403);}$action=trim((string)$request->input('action',''));try{$missionId=(int)$request->param('id');if($action==='confirm_unloading'){$goods=$request->input('goods',[]);if(!is_array($goods)){throw new RuntimeException('Format de contrôle invalide.');}$message=DriverMission::confirmUnloading($missionId,$goods);return $this->json(['success'=>true,'message'=>$message]);}$message=DriverMission::perform($missionId,$action,(string)$request->input('description',''));$gps=null;if($action==='start'){$position=$request->input('initial_position');if(!is_array($position)){throw new RuntimeException('La première position GPS est obligatoire pour démarrer la mission.');}$gps=GpsTracking::recordBatch($missionId,[$position],'pwa');$message='Mission démarrée · position GPS enregistrée sur le serveur.';}return $this->json(['success'=>true,'message'=>$message,'gps'=>$gps]);}catch(Throwable $e){@error_log(sprintf("[%s] Driver action/GPS failed for mission %d: %s\n",date('c'),(int)$request->param('id'),$e->getMessage()),3,BASE_PATH.'/storage/logs/app.log');return $this->json(['success'=>false,'message'=>$e instanceof RuntimeException?$e->getMessage():'Action ou enregistrement GPS impossible.'],422);}
+        if(!Auth::can('driver_app.access') || !DriverMission::driver()){return $this->json(['success'=>false,'message'=>'Accès refusé : aucune fiche chauffeur active.'],403);}
+        $pdo=Database::connection();$ownsTransaction=!$pdo->inTransaction();
+        // A savepoint keeps failed requests atomic even inside an integration-test transaction.
+        if($ownsTransaction){$pdo->beginTransaction();}else{$pdo->exec('SAVEPOINT driver_app_action');}
+        try{
+            $action=$request->input('action','');if(!is_string($action)){throw new RuntimeException('Action invalide.');}$action=trim($action);
+            $missionId=(int)$request->param('id');$gps=null;
+            if($action==='start' && !is_array($request->input('initial_position'))){throw new RuntimeException('La première position GPS est obligatoire pour démarrer la mission.');}
+            if($action==='confirm_unloading'){
+                $goods=$request->input('goods',[]);if(!is_array($goods)){throw new RuntimeException('Format de contrôle invalide.');}
+                $message=DriverMission::confirmUnloading($missionId,$goods);
+            }else{
+                $message=DriverMission::perform($missionId,$action,(string)$request->input('description',''));
+                if($action==='start'){$gps=GpsTracking::recordBatch($missionId,[$request->input('initial_position')],'pwa');$message='Mission démarrée · position GPS enregistrée sur le serveur.';}
+            }
+            if($ownsTransaction){$pdo->commit();}else{$pdo->exec('RELEASE SAVEPOINT driver_app_action');}
+            return $this->json(['success'=>true,'message'=>$message,'gps'=>$gps]);
+        }catch(Throwable $e){
+            if($pdo->inTransaction()){if($ownsTransaction){$pdo->rollBack();}else{$pdo->exec('ROLLBACK TO SAVEPOINT driver_app_action');$pdo->exec('RELEASE SAVEPOINT driver_app_action');}}
+            @error_log(sprintf("[%s] Driver action/GPS failed for mission %d: %s\n",date('c'),(int)$request->param('id'),$e->getMessage()),3,BASE_PATH.'/storage/logs/app.log');
+            return $this->json(['success'=>false,'message'=>$e instanceof RuntimeException && !($e instanceof \PDOException)?$e->getMessage():'Action ou enregistrement GPS impossible.'],422);
+        }
     }
     public function positions(Request $request): Response
     {

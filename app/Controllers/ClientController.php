@@ -10,6 +10,7 @@ use App\Core\Csrf;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
+use App\Core\EmailRecipients;
 use App\Models\Client;
 use Throwable;
 
@@ -60,7 +61,7 @@ final class ClientController extends Controller
             if (!Client::update((int)$request->param('id'),$data)) { return $this->json(['success'=>false,'message'=>'Client introuvable.'],404); }
             return $this->json(['success'=>true,'message'=>'Client mis à jour.']);
         } catch (Throwable $exception) {
-            return $this->json(['success'=>false,'message'=>'La mise à jour a échoué.'],422);
+            return $this->json(['success'=>false,'message'=>$exception instanceof \RuntimeException && !($exception instanceof \PDOException)?$exception->getMessage():'La mise à jour a échoué.'],422);
         }
     }
 
@@ -80,6 +81,7 @@ final class ClientController extends Controller
         foreach (['latitude'=>[-90,90],'longitude'=>[-180,180]] as $field=>$range) { if (($data[$field]??'')!=='' && (!is_numeric($data[$field]) || (float)$data[$field]<$range[0] || (float)$data[$field]>$range[1])) { $errors[$field]='Coordonnée GPS invalide.'; } }
         foreach ($data['contacts']??[] as $index=>$contact) { if (($contact['email']??'')!==''&&!filter_var($contact['email'],FILTER_VALIDATE_EMAIL)) { $errors['contacts.'.$index.'.email']='E-mail du contact invalide.'; } }
         foreach ($data['sites']??[] as $index=>$site) {
+            try{EmailRecipients::parse($site['notification_emails']??'');}catch(\RuntimeException $e){$errors['sites']='Destination '.($index+1).' : '.$e->getMessage();}
             if (trim((string)($site['name']??''))==='' || trim((string)($site['address_line1']??''))==='' || trim((string)($site['city']??''))==='') {$errors['sites']='Chaque site doit contenir un nom, une adresse et une ville.';break;}
             foreach (['latitude'=>[-90,90],'longitude'=>[-180,180]] as $field=>$range) {if (($site[$field]??'')!==''&&(!is_numeric($site[$field])||(float)$site[$field]<$range[0]||(float)$site[$field]>$range[1])) {$errors['sites']='Les coordonnées GPS d’un site sont invalides.';break 2;}}
         }

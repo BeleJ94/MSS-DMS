@@ -1,4 +1,6 @@
 /.env
+/.env.lock
+/.mail-settings-*
 /storage/logs/*.log
 /storage/cache/*
 !.gitkeep

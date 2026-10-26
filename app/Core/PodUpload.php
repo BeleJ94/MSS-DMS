@@ -45,6 +45,7 @@ final class PodUpload
 
     private static function jpeg(string $data, int $maxWidth, int $maxHeight, int $quality, bool $whiteBackground): array
     {
+        if(!function_exists('imagecreatefromstring')){throw new RuntimeException('Le serveur ne peut pas traiter les photos : l’extension PHP GD doit être activée par l’administrateur.');}
         $source = @imagecreatefromstring($data);
         if ($source === false) { throw new RuntimeException('Une image de la preuve est illisible.'); }
         $width = imagesx($source); $height = imagesy($source);

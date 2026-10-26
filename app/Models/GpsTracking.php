@@ -16,15 +16,17 @@ final class GpsTracking
 
     public static function activeMissionId(): ?int
     {
-        $placeholders=implode(',',array_fill(0,count(self::ACTIVE_STATUSES),'?'));$s=Database::connection()->prepare('SELECT d.id FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id WHERE dr.user_id=? AND d.status IN ('.$placeholders.') ORDER BY d.updated_at DESC LIMIT 1');$s->execute(array_merge([Auth::id()],self::ACTIVE_STATUSES));$id=$s->fetchColumn();return $id?(int)$id:null;
+        $placeholders=implode(',',array_fill(0,count(self::ACTIVE_STATUSES),'?'));$s=Database::connection()->prepare('SELECT d.id FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id AND dr.is_active=1 WHERE dr.user_id=? AND d.status IN ('.$placeholders.') ORDER BY d.updated_at DESC LIMIT 1');$s->execute(array_merge([Auth::id()],self::ACTIVE_STATUSES));$id=$s->fetchColumn();return $id?(int)$id:null;
     }
 
     public static function recordBatch(int $deliveryId,array $positions,string $source='pwa'): array
     {
         if($positions===[]||count($positions)>100){throw new RuntimeException('Le lot doit contenir entre 1 et 100 positions.');}
+        foreach($positions as $position){if(!is_array($position) || !is_string($position['captured_at']??null) || trim($position['captured_at'])==='' || !is_string($position['position_id']??null)){throw new RuntimeException('Chaque position doit contenir un identifiant, des coordonnées et une date de capture.');}}
+        $ids=array_column($positions,'position_id');if(count($ids)!==count(array_unique($ids,SORT_REGULAR))){throw new RuntimeException('Le lot contient plusieurs fois le même identifiant de position.');}
         $validated=array_map([self::class,'validate'],$positions);$pdo=Database::connection();$ownsTransaction=!$pdo->inTransaction();if($ownsTransaction){$pdo->beginTransaction();}
         try{
-            $missionStatement=$pdo->prepare('SELECT d.id,d.driver_id,d.status,d.delivered_at,d.closed_at FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id WHERE d.id=:delivery AND dr.user_id=:user');
+            $missionStatement=$pdo->prepare('SELECT d.id,d.driver_id,d.status,d.delivered_at,d.closed_at FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id AND dr.is_active=1 WHERE d.id=:delivery AND dr.user_id=:user');
             $missionStatement->execute(['delivery'=>$deliveryId,'user'=>Auth::id()]);$mission=$missionStatement->fetch();
             if(!$mission){throw new RuntimeException('Mission introuvable ou non autorisée.');}
             if(!in_array($mission['status'],self::ACTIVE_STATUSES,true)){$endedAt=$mission['closed_at']?:$mission['delivered_at'];if(!$endedAt){throw new RuntimeException('Le tracking est fermé pour cette mission.');}$cutoff=strtotime((string)$endedAt)+300;foreach($validated as $position){if(strtotime($position['captured_at'])>$cutoff){throw new RuntimeException('Le tracking est fermé pour cette mission.');}}}
@@ -52,7 +54,7 @@ final class GpsTracking
 
     public static function recentOwned(int $deliveryId,int $limit=60): array
     {
-        $limit=max(10,min(100,$limit));$pdo=Database::connection();$owned=$pdo->prepare('SELECT COUNT(*) FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id WHERE d.id=:delivery AND dr.user_id=:user');$owned->execute(['delivery'=>$deliveryId,'user'=>Auth::id()]);if(!(int)$owned->fetchColumn()){throw new RuntimeException('Mission introuvable ou non autorisée.');}$count=$pdo->prepare('SELECT COUNT(*) FROM delivery_gps_positions WHERE delivery_id=:delivery');$count->execute(['delivery'=>$deliveryId]);$positions=$pdo->prepare('SELECT device_position_id,latitude,longitude,accuracy_m,captured_at,received_at,source FROM delivery_gps_positions WHERE delivery_id=:delivery ORDER BY captured_at DESC,id DESC LIMIT '.$limit);$positions->execute(['delivery'=>$deliveryId]);return ['total_positions'=>(int)$count->fetchColumn(),'positions'=>$positions->fetchAll(),'server_time'=>gmdate('c'),'schema'=>self::schemaAudit($pdo)];
+        $limit=max(10,min(100,$limit));$pdo=Database::connection();$owned=$pdo->prepare('SELECT COUNT(*) FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id AND dr.is_active=1 WHERE d.id=:delivery AND dr.user_id=:user');$owned->execute(['delivery'=>$deliveryId,'user'=>Auth::id()]);if(!(int)$owned->fetchColumn()){throw new RuntimeException('Mission introuvable ou non autorisée.');}$count=$pdo->prepare('SELECT COUNT(*) FROM delivery_gps_positions WHERE delivery_id=:delivery');$count->execute(['delivery'=>$deliveryId]);$positions=$pdo->prepare('SELECT device_position_id,latitude,longitude,accuracy_m,captured_at,received_at,source FROM delivery_gps_positions WHERE delivery_id=:delivery ORDER BY captured_at DESC,id DESC LIMIT '.$limit);$positions->execute(['delivery'=>$deliveryId]);return ['total_positions'=>(int)$count->fetchColumn(),'positions'=>$positions->fetchAll(),'server_time'=>gmdate('c'),'schema'=>self::schemaAudit($pdo)];
     }
 
     private static function schemaAudit(\PDO $pdo): array

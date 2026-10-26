@@ -22,7 +22,9 @@ final class Env
             }
 
             [$key, $value] = array_map('trim', explode('=', $line, 2));
-            $value = trim($value, " \t\n\r\0\x0B\"'");
+            if (strlen($value) >= 2 && (($value[0] === '"' && substr($value, -1) === '"') || ($value[0] === "'" && substr($value, -1) === "'"))) {
+                $value = substr($value, 1, -1);
+            }
             self::$values[$key] = $value;
         }
     }

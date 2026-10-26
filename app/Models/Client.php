@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Core\Auth;
 use App\Core\Database;
+use App\Core\EmailRecipients;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -123,15 +124,44 @@ final class Client
 
     private static function replaceChildren(PDO $pdo, int $clientId, array $data): void
     {
-        foreach (['client_contacts','client_sites','client_notification_recipients'] as $table) {
-            $delete = $pdo->prepare("DELETE FROM {$table} WHERE client_id=:id"); $delete->execute(['id' => $clientId]);
+        $groups=[
+            'contacts'=>['client_contacts',['full_name','job_title','email','phone','is_primary']],
+            'sites'=>['client_sites',['name','site_code','address_line1','address_line2','city','province','country','latitude','longitude','delivery_instructions','is_default','status','notification_emails']],
+            'recipients'=>['client_notification_recipients',['full_name','email','phone','notify_email','notify_sms','notify_on']],
+        ];
+        foreach($groups as $group=>$definition){
+            if(!array_key_exists($group,$data)){continue;}
+            [$table,$fields]=$definition;
+            $s=$pdo->prepare('SELECT * FROM '.$table.' WHERE client_id=? FOR UPDATE');$s->execute([$clientId]);$existing=[];
+            foreach($s->fetchAll() as $row){$existing[(int)$row['id']]=$row;}
+            $seen=[];
+            foreach($data[$group] as $row){
+                if(trim((string)($row[$group==='sites'?'name':'full_name']??''))===''){continue;}
+                $id=(int)($row['id']??0);
+                if($id && (!isset($existing[$id]) || isset($seen[$id]))){throw new RuntimeException('Un contact ou un site ne correspond pas à ce client. Rechargez sa fiche.');}
+                $values=[];
+                foreach($fields as $field){
+                    $value=$row[$field]??($id?$existing[$id][$field]:null);
+                    if(in_array($field,['is_primary','is_default','notify_email','notify_sms'],true)){$value=!empty($value)?1:0;}
+                    elseif($field==='notification_emails'){$value=EmailRecipients::normalize($value);}
+                    else{$value=self::nullable($value);}
+                    if($field==='country'){$value=$value?:'RDC';}
+                    if($field==='status'){$value=in_array($value,['active','inactive'],true)?$value:'active';}
+                    if($field==='notify_on'){$value=$value??'dispatch,arrival,delivery';}
+                    $values[]=$value;
+                }
+                if($id){$sql='UPDATE '.$table.' SET '.implode(',',array_map(static function(string $field):string{return $field.'=?';},$fields)).' WHERE id=? AND client_id=?';$values[]=$id;$values[]=$clientId;}
+                else{$sql='INSERT INTO '.$table.' ('.implode(',',$fields).',client_id) VALUES ('.implode(',',array_fill(0,count($fields)+1,'?')).')';$values[]=$clientId;}
+                $pdo->prepare($sql)->execute($values);if($id){$seen[$id]=true;}
+            }
+            foreach(array_diff_key($existing,$seen) as $id=>$old){
+                if($group==='sites'){
+                    $used=$pdo->prepare('SELECT (SELECT COUNT(*) FROM deliveries WHERE client_site_id=?)+(SELECT COUNT(*) FROM delivery_destinations WHERE client_site_id=?)');$used->execute([$id,$id]);
+                    if((int)$used->fetchColumn()>0){$pdo->prepare('UPDATE client_sites SET status="inactive" WHERE id=? AND client_id=?')->execute([$id,$clientId]);continue;}
+                }
+                $pdo->prepare('DELETE FROM '.$table.' WHERE id=? AND client_id=?')->execute([$id,$clientId]);
+            }
         }
-        $contact = $pdo->prepare('INSERT INTO client_contacts (client_id,full_name,job_title,email,phone,is_primary) VALUES (:client_id,:full_name,:job_title,:email,:phone,:is_primary)');
-        foreach ($data['contacts'] ?? [] as $row) { if (trim((string)($row['full_name'] ?? '')) === '') { continue; } $contact->execute(['client_id'=>$clientId,'full_name'=>trim($row['full_name']),'job_title'=>self::nullable($row['job_title']??null),'email'=>self::nullable($row['email']??null),'phone'=>self::nullable($row['phone']??null),'is_primary'=>!empty($row['is_primary'])?1:0]); }
-        $site = $pdo->prepare('INSERT INTO client_sites (client_id,name,site_code,address_line1,address_line2,city,province,country,latitude,longitude,delivery_instructions,is_default,status) VALUES (:client_id,:name,:site_code,:address_line1,:address_line2,:city,:province,:country,:latitude,:longitude,:delivery_instructions,:is_default,:status)');
-        foreach ($data['sites'] ?? [] as $row) { if (trim((string)($row['name']??''))==='' || trim((string)($row['address_line1']??''))==='' || trim((string)($row['city']??''))==='') { continue; } $country=trim((string)($row['country']??''))?:'RDC'; $site->execute(['client_id'=>$clientId,'name'=>trim($row['name']),'site_code'=>self::nullable($row['site_code']??null),'address_line1'=>trim($row['address_line1']),'address_line2'=>self::nullable($row['address_line2']??null),'city'=>trim($row['city']),'province'=>self::nullable($row['province']??null),'country'=>$country,'latitude'=>self::nullable($row['latitude']??null),'longitude'=>self::nullable($row['longitude']??null),'delivery_instructions'=>self::nullable($row['delivery_instructions']??null),'is_default'=>!empty($row['is_default'])?1:0,'status'=>in_array($row['status']??'active',['active','inactive'],true)?$row['status']:'active']); }
-        $recipient = $pdo->prepare('INSERT INTO client_notification_recipients (client_id,full_name,email,phone,notify_email,notify_sms,notify_on) VALUES (:client_id,:full_name,:email,:phone,:notify_email,:notify_sms,:notify_on)');
-        foreach ($data['recipients'] ?? [] as $row) { if (trim((string)($row['full_name']??''))==='') { continue; } $recipient->execute(['client_id'=>$clientId,'full_name'=>trim($row['full_name']),'email'=>self::nullable($row['email']??null),'phone'=>self::nullable($row['phone']??null),'notify_email'=>!empty($row['notify_email'])?1:0,'notify_sms'=>!empty($row['notify_sms'])?1:0,'notify_on'=>trim((string)($row['notify_on']??'dispatch,arrival,delivery'))]); }
     }
 
     private static function history(PDO $pdo, int $id, string $action, string $description, ?array $changes): void

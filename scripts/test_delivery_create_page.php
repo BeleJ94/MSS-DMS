@@ -20,7 +20,8 @@ expectCreatePage(strpos($html,'id="createDeliveryForm"')!==false,'le formulaire 
 expectCreatePage(substr_count($html,'course-field-card')===3&&strpos($html,'section-kicker')!==false,'les informations de la course utilisent trois champs en cartes hiérarchisées');
 expectCreatePage(strpos($html,'data-delivery-stops')!==false&&strpos($html,'data-add-stop')!==false,'le parcours multi-destinations est disponible');
 expectCreatePage(strpos($html,'data-stop-card')!==false&&strpos($html,'Marchandises à livrer ici')!==false,'chaque destination et ses marchandises sont réunies dans une fiche');
-expectCreatePage(strpos($html,'data-destination-field="latitude"')===false&&strpos($html,'data-destination-field="longitude"')===false,'le tableau reste limité aux informations opérationnelles demandées');
+expectCreatePage(strpos($html,'type="hidden" data-destination-field="latitude"')!==false&&strpos($html,'type="hidden" data-destination-field="longitude"')!==false,'les coordonnées du site sont conservées sans ajouter de champs GPS visibles');
+expectCreatePage(strpos($html,'data-client-site-select')!==false&&strpos($html,'data-destination-field="notification_emails"')!==false,'le site client et ses adresses de notification sont disponibles sur chaque destination');
 expectCreatePage(strpos($html,'data-stop-goods')!==false&&strpos($html,'data-goods-field="destination_index"')===false,'les marchandises sont imbriquées sans sélecteur de destination ambigu');
 expectCreatePage(strpos($html,'data-stop-up')!==false&&strpos($html,'data-stop-down')!==false,'les fiches complètes peuvent être réordonnées');
 expectCreatePage(strpos($html,'data-form-stop-count')!==false&&strpos($html,'data-form-weight')!==false,'un résumé opérationnel accompagne la saisie');

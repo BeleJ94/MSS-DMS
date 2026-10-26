@@ -34,6 +34,7 @@ $errorMessage = Session::pull('error');
     <?php if (($page ?? '') === 'planning'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/planning.css?v=20260805-2"><?php endif; ?>
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/typography.css?v=20260806-1">
     <link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/modal-actions.css?v=20260806-2">
+    <?php if (($page ?? '') === 'clients'): ?><link rel="stylesheet" href="<?= $baseUrl ?>/assets/css/client-editor.css?v=20261023-1"><?php endif; ?>
 </head>
 <body>
 <div class="app-shell">
@@ -59,6 +60,7 @@ $errorMessage = Session::pull('error');
             <?php if (Auth::can('incidents.view')): ?><a class="nav-item <?= ($page ?? '') === 'incidents' ? 'active' : '' ?>" href="<?= $baseUrl ?>/incidents"><i data-lucide="triangle-alert"></i><span>Incidents</span></a><?php endif; ?>
             <?php if (Auth::can('reports.view')): ?><a class="nav-item <?= ($page ?? '') === 'reports' ? 'active' : '' ?>" href="<?= $baseUrl ?>/reports"><i data-lucide="chart-no-axes-combined"></i><span>Rapports</span></a><?php endif; ?>
             <?php if (Auth::can('users.manage')): ?><a class="nav-item <?= ($page ?? '') === 'users' ? 'active' : '' ?>" href="<?= $baseUrl ?>/users"><i data-lucide="settings"></i><span>Administration</span></a><?php endif; ?>
+            <?php if (Auth::hasRole('administrateur')): ?><a class="nav-item <?= in_array($page ?? '', ['mail-settings','notification-tests'], true) ? 'active' : '' ?>" href="<?= $baseUrl ?>/settings/mail"><i data-lucide="mail"></i><span>Configuration e-mail</span></a><?php endif; ?>
         </nav>
         <div class="sidebar-foot"><span class="status-dot"></span><span>Système opérationnel</span><strong>v1.0</strong></div>
     </aside>
@@ -98,12 +100,14 @@ $errorMessage = Session::pull('error');
 <script>window.MSS_CSRF = <?= json_encode(Csrf::token()) ?>;</script>
 <?php if ($successMessage || $errorMessage): ?><script>window.MSS_FLASH = <?= json_encode(['type' => $successMessage ? 'success' : 'error', 'message' => $successMessage ?: $errorMessage], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;</script><?php endif; ?>
 <script src="<?= $baseUrl ?>/assets/js/app.js?v=20260806-3"></script>
+<?php if (($page ?? '') === 'mail-settings'): ?><script src="<?= $baseUrl ?>/assets/js/mail-settings.js?v=20261023-2"></script><?php endif; ?>
+<?php if (($page ?? '') === 'notification-tests'): ?><script src="<?= $baseUrl ?>/assets/js/notification-tests.js?v=20261023-2"></script><?php endif; ?>
 <?php if (($page ?? '') === 'dashboard'): ?><script src="<?= $baseUrl ?>/assets/js/dashboard.js"></script><?php endif; ?>
-<?php if (($page ?? '') === 'clients'): ?><script src="<?= $baseUrl ?>/assets/js/clients.js"></script><?php endif; ?>
+<?php if (($page ?? '') === 'clients'): ?><script src="<?= $baseUrl ?>/assets/js/clients.js?v=20261023-3"></script><script src="<?= $baseUrl ?>/assets/js/client-editor.js?v=20261023-1"></script><?php endif; ?>
 <?php if (($page ?? '') === 'drivers'): ?><script src="<?= $baseUrl ?>/assets/js/drivers.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'fleet'): ?><script src="<?= $baseUrl ?>/assets/js/fleet.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'goods'): ?><script src="<?= $baseUrl ?>/assets/js/goods.js"></script><?php endif; ?>
-<?php if (($page ?? '') === 'deliveries'): ?><script src="<?= $baseUrl ?>/assets/js/deliveries.js?v=20260901-2"></script><?php endif; ?>
+<?php if (($page ?? '') === 'deliveries'): ?><script src="<?= $baseUrl ?>/assets/js/deliveries.js?v=20261023-3"></script><script src="<?= $baseUrl ?>/assets/js/delivery-client-sites.js?v=20261023-1"></script><?php endif; ?>
 <?php if (($page ?? '') === 'incidents'): ?><script src="<?= $baseUrl ?>/assets/js/incidents.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'dispatching'): ?><script src="<?= $baseUrl ?>/assets/js/dispatching.js"></script><?php endif; ?>
 <?php if (($page ?? '') === 'planning'): ?><script src="<?= $baseUrl ?>/assets/js/planning.js?v=20260805-1"></script><?php endif; ?>

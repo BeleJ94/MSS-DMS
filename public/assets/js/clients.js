@@ -46,13 +46,13 @@
     $(document).on('click','[data-add-row]',function(){
         var name=$(this).data('add-row'); var repeater=$(this).closest('.form-pane').find('[data-repeater="'+name+'"]'); var row=repeater.find('.repeater-row').eq(0).clone();
         if (!row.length) { return; }
-        row.find('input').val('').prop('checked',false); row.find('select').prop('selectedIndex',0);
+        row.find('input,textarea').val('').prop('checked',false); row.find('select').prop('selectedIndex',0);
         if(name==='sites'){row.find('[data-field="country"]').val('RDC');row.find('[data-field="status"]').val('active');}
         if(name==='recipients'){row.find('[data-field="notify_email"]').prop('checked',true);}
         repeater.append(row);
         if(window.lucide){window.lucide.createIcons({attrs:{'stroke-width':1.8}});}
     });
-    $(document).on('click','.remove-row',function(){ var repeater=$(this).closest('.repeater'); if(repeater.find('.repeater-row').length>1){$(this).closest('.repeater-row').remove();}else{$(this).closest('.repeater-row').find('input').val('').prop('checked',false);} });
+    $(document).on('click','.remove-row',function(){ var repeater=$(this).closest('.repeater'); if(repeater.find('.repeater-row').length>1){$(this).closest('.repeater-row').remove();}else{$(this).closest('.repeater-row').find('input,textarea').val('').prop('checked',false);} });
 
     function collectForm(form) {
         var data={contacts:[],sites:[],recipients:[]};
@@ -66,7 +66,7 @@
         var submit=form.find('[type="submit"]').prop('disabled',true); var url=baseUrl+'/api/clients'+(id?'/'+id:'');
         $.ajax({url:url,method:'POST',contentType:'application/json',dataType:'json',data:JSON.stringify(collectForm(form))})
             .done(function(response){ Swal.fire({icon:'success',title:response.message,confirmButtonColor:'#245da8'}).then(function(){ if(response.redirect){window.location.href=response.redirect;}else{window.location.reload();} }); })
-            .fail(function(xhr){ var response=xhr.responseJSON||{}; $.each(response.errors||{},function(key,message){form.find('[data-error="'+key+'"]').text(message);}); if(response.errors&&response.errors.sites){form.find('[data-form-tab]').removeClass('active');form.find('[data-form-tab="sites"]').addClass('active');form.find('[data-form-pane]').removeClass('active');form.find('[data-form-pane="sites"]').addClass('active');} Swal.fire({icon:'error',title:'Enregistrement impossible',text:response.message||'Une erreur est survenue.',confirmButtonColor:'#245da8'}); })
+            .fail(function(xhr){ var response=xhr.responseJSON||{}; if(window.MSS_CLIENT_ERRORS){window.MSS_CLIENT_ERRORS(form,response.errors||{});} $.each(response.errors||{},function(key,message){form.find('[data-error="'+key+'"]').text(message);}); if(response.errors&&response.errors.sites){form.find('[data-form-tab]').removeClass('active');form.find('[data-form-tab="sites"]').addClass('active');form.find('[data-form-pane]').removeClass('active');form.find('[data-form-pane="sites"]').addClass('active');} Swal.fire({icon:'error',title:'Enregistrement impossible',text:response.message||'Une erreur est survenue.',confirmButtonColor:'#245da8'}); })
             .always(function(){submit.prop('disabled',false);});
     });
 

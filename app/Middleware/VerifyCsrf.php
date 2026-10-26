@@ -17,7 +17,7 @@ final class VerifyCsrf
         if (Csrf::validate(is_string($token) ? $token : null)) {
             return null;
         }
-        if (strpos($request->path(), '/api/') === 0) {
+        if (strpos($request->path(), '/api/') === 0 || (($request->path() === '/settings/mail' || strpos($request->path(),'/settings/mail/')===0) && stripos((string)($_SERVER['HTTP_ACCEPT']??''),'application/json')!==false)) {
             return Response::json(['success' => false, 'message' => 'Jeton CSRF absent ou invalide. Rechargez la page.'], 419);
         }
         return new Response(View::render('errors/419', ['title' => 'Session expirée']), 419);

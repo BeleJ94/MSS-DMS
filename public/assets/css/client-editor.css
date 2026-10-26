@@ -1,0 +1,55 @@
+.client-modal{padding:24px;background:rgba(12,25,43,.58);backdrop-filter:blur(4px)}
+.client-modal .modal-large{display:flex;flex-direction:column;width:min(1080px,96vw);min-width:0;max-width:100%;height:min(850px,92vh);max-height:92vh;border-radius:16px;box-shadow:0 28px 90px #0c192b40;background:#fff}
+.client-modal .modal-head{flex:none;padding:24px 30px;background:linear-gradient(120deg,#f7faff,#fff);align-items:flex-start}
+.client-modal .modal-head .eyebrow{font-size:10px;letter-spacing:1.5px}
+.client-modal .modal-head h2{font-size:21px;line-height:1.35;margin:6px 0;max-width:850px;overflow-wrap:anywhere;color:#1b304c}
+.client-modal .modal-head p{font-size:12px;line-height:1.6;color:#728095;margin:0}
+.client-modal .modal-head>[data-modal-close]{border:1px solid #e2e8f0;background:#fff;border-radius:50%;flex:none}
+.client-modal .client-form{flex:1;min-height:0;min-width:0;width:100%;max-height:none;overflow:hidden}
+.client-modal .client-form>*{min-width:0;max-width:100%}
+.client-modal .form-tabs{flex:none;padding:0 28px;gap:18px;background:#fff}
+.client-modal .form-tabs button{display:flex;align-items:center;gap:8px;height:57px;padding:0 3px;font:600 12px Inter,system-ui,sans-serif;cursor:pointer}
+.client-modal .form-tabs button>svg{width:16px;height:16px}
+.client-modal .form-tabs button>span{background:#f0f3f8;color:#718096;min-width:23px;height:21px;border-radius:6px;display:inline-grid;place-items:center;font-size:10px}
+.client-modal .form-tabs button.active>span{background:#e8f0fc;color:#245da8}
+.client-modal .form-tabs button:focus-visible,.client-modal .client-row-toggle:focus-visible{outline:2px solid #477ac2;outline-offset:-3px}
+.client-modal .form-pane{flex:1;min-height:0;padding:26px 30px 30px;background:#f7f9fc;overscroll-behavior:contain;scrollbar-gutter:stable}
+.client-modal .section-title{margin-bottom:18px}
+.client-modal .section-title h3{font-size:15px;color:#243955;line-height:1.4;margin:0 0 5px}
+.client-modal .section-title p{font-size:12px;line-height:1.6;max-width:600px}
+.client-modal .section-title.subsection{margin-top:26px;padding-top:24px}
+.client-modal .section-title.with-action{gap:18px;align-items:center}
+.client-modal .section-title .button{background:#fff;border:1px solid #d9e2ee;color:#315f9e;flex:none}
+.client-modal .client-form-grid{gap:17px 22px;background:#fff;border:1px solid #e3e9f1;border-radius:12px;padding:22px;margin:0}
+.client-modal .field{min-width:0;margin:0}
+.client-modal .field>span{display:block;font-size:12px;line-height:1.5;font-weight:600;color:#40516a;margin-bottom:7px}
+.client-modal .field>div{height:42px;background:#fff;border-color:#dce3ed;border-radius:7px}
+.client-modal .field input:not([type=checkbox]),.client-modal .field select{font:13px Inter,system-ui,sans-serif;color:#273b55;min-width:0}
+.client-modal .field textarea{font:13px/1.7 Inter,system-ui,sans-serif;padding:11px 13px;min-height:90px;border:1px solid #dce3ed;background:#fff;color:#273b55}
+.client-modal .field input::placeholder,.client-modal .field textarea::placeholder{color:#a0aaba;font-size:12px}
+.client-modal .field>small{display:block;font-size:11px;line-height:1.65;color:#7c8899;margin-top:7px}
+.client-modal .field>div:focus-within,.client-modal .field textarea:focus{border-color:#769cd0;box-shadow:0 0 0 3px #3166ac0e}
+.client-modal .repeater{gap:16px}
+.client-modal .repeater-row{padding:0;background:#fff;border:1px solid #dfe6ef;border-radius:12px;overflow:hidden}
+.client-row-head{display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid #edf0f5;background:#fff}
+.client-row-toggle{display:flex;align-items:center;gap:12px;min-width:0;flex:1;border:0;background:none;padding:0;text-align:left;cursor:pointer;color:#293f5a;font-family:inherit}
+.client-row-number{width:32px;height:32px;display:grid;place-items:center;background:#eef3fa;border-radius:9px;color:#365d91;font-size:12px;font-weight:700;flex:none}
+.client-row-label{min-width:0;flex:1}.client-row-label strong{display:block;font-size:13px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.client-row-label small{display:block;font-size:11px;color:#8894a4;line-height:1.6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.client-row-chevron{font-size:19px;color:#8a98aa;transition:transform .15s}
+.client-modal .client-row-head .remove-row{position:static;width:31px;height:31px;border:1px solid #f0dfe3;background:#fff;color:#b85d6a;border-radius:7px;flex:none}
+.client-modal .client-row-head .remove-row:hover{background:#fff1f3}
+.client-modal .repeater-grid,.client-modal .repeater-grid.three{grid-template-columns:repeat(2,minmax(0,1fr));gap:17px 20px;padding:20px;margin:0}
+.client-modal .repeater-grid .field.wide{grid-column:1/-1}
+.client-modal .repeater-row>.check-field,.client-modal .repeater-row>.inline-checks{margin:0 20px 20px;font-size:12px}
+.client-modal .repeater-row.is-collapsed>:not(.client-row-head):not(input[type=hidden]){display:none}
+.client-modal .repeater-row.is-collapsed .client-row-head{border-bottom:0}
+.client-modal .repeater-row.is-collapsed .client-row-chevron{transform:rotate(-90deg)}
+.client-editor-note{padding:13px 16px;border:1px solid #dbe7f6;border-radius:9px;background:#edf4fc;color:#516c8d;font-size:12px;line-height:1.7;margin:0 0 18px}
+.client-modal .client-form-actions{flex:none;display:flex;align-items:center;gap:10px;margin:0;padding:17px 28px!important;min-height:82px!important;border-top:1px solid #e1e7ef;background:#fff;box-shadow:0 -5px 18px #263b5504}
+.client-editor-footnote{margin-right:auto;text-align:left;max-width:430px}.client-editor-footnote strong{display:block;font-size:11px;color:#5c6f88;font-weight:500}.client-editor-footnote span{display:block;font-size:10px;color:#97a2b1;line-height:1.6;margin-top:3px}
+.client-modal .client-form-actions .button{height:41px;font:600 12px Inter,system-ui,sans-serif;justify-content:center;margin:0}
+.client-modal .client-form-actions .button-primary{box-shadow:0 3px 7px #245da820}
+.client-modal .client-inline-error{display:block;color:#b44855;font-size:11px;margin-top:6px}
+.client-modal [aria-invalid=true]{outline:2px solid #ce6875;outline-offset:2px}
+@media(max-width:720px){.client-modal{padding:0}.client-modal .modal-large{width:100%;height:100dvh;max-height:100dvh;border-radius:0}.client-modal .modal-head{padding:20px}.client-modal .modal-head h2{font-size:18px}.client-modal .form-tabs{padding:0 18px;gap:16px}.client-modal .form-tabs button{height:51px;font-size:11px}.client-modal .form-pane{padding:20px 16px}.client-modal .client-form-grid,.client-modal .repeater-grid,.client-modal .repeater-grid.three{grid-template-columns:1fr;padding:17px;gap:16px}.client-modal .section-title.with-action{align-items:flex-start}.client-modal .client-form-actions{padding:14px 16px!important;flex-wrap:wrap}.client-editor-footnote{flex-basis:100%;max-width:none}.client-editor-footnote span{display:none}.client-modal .client-form-actions .button{flex:1}.client-row-head{padding:14px}.client-modal .form-tabs button>svg{display:none}}

@@ -1,4 +1,9 @@
 <?php
+$hasNextDestination=!empty($mission['current_destination_id']);
+if(!$hasNextDestination){
+    $last=$mission['destinations']?end($mission['destinations']):[];
+    foreach(['site_name'=>'label','site_address'=>'address_line','site_city'=>'city','latitude'=>'latitude','longitude'=>'longitude','delivery_instructions'=>'instructions','contact_name'=>'contact_name','contact_phone'=>'contact_phone'] as $field=>$source){$mission[$field]=$last[$source]??'';}
+}
 $maps = $mission['latitude'] && $mission['longitude']
     ? 'https://www.google.com/maps/dir/?api=1&destination='.rawurlencode($mission['latitude'].','.$mission['longitude'])
     : 'https://www.google.com/maps/search/?api=1&query='.rawurlencode($mission['site_address'].', '.$mission['site_city']);
@@ -7,7 +12,7 @@ if($nextAction&&$nextAction['action']==='arrive'){$nextAction['label']='Confirme
 if($nextAction&&$nextAction['action']==='unload'){$nextAction['label']='Décharger · '.($mission['site_name']?:'Destination '.(int)$mission['current_stop_order']);}
 $stageClasses=['Brouillon'=>'assigned','Affectée'=>'assigned','À préparer'=>'preparation','Prête'=>'ready','Chargement'=>'loading','Chargée'=>'loaded','Partie'=>'transit','En transit'=>'transit','Arrivée'=>'arrived','Déchargement'=>'unloading','Incident'=>'incident','Livrée'=>'completed','Clôturée'=>'completed'];$stageClass=$stageClasses[$mission['status']]??'assigned';
 $driverStages=['Affectée','À préparer','Prête','Chargement','Chargée','En transit','Arrivée','Déchargement','Livrée'];
-$driverStageStatus=$mission['status']==='Brouillon'?'Affectée':($mission['status']==='Partie'?'En transit':$mission['status']);
+$driverStageStatus=$mission['status']==='Brouillon'?'Affectée':($mission['status']==='Partie'?'En transit':($mission['status']==='Clôturée'?'Livrée':$mission['status']));
 $driverStageIndex=array_search($driverStageStatus,$driverStages,true);
 ?>
 <a class="mobile-back" href="<?= $baseUrl ?>/driver-app"><i data-lucide="arrow-left"></i> Mes missions</a>
@@ -17,16 +22,16 @@ $driverStageIndex=array_search($driverStageStatus,$driverStages,true);
 </section>
 <section class="mobile-card driver-workflow-card"><div class="driver-workflow-head"><div><small>PROGRESSION DE LA MISSION</small><h2>Étape sous votre responsabilité</h2></div><b><?= $driverStageIndex===false?'—':($driverStageIndex+1).' / '.count($driverStages) ?></b></div><div class="driver-workflow-track"><?php foreach($driverStages as $index=>$stage): $done=$driverStageIndex!==false&&$index<$driverStageIndex;$active=$driverStageIndex===$index; ?><div class="<?= $done?'done':'' ?> <?= $active?'active':'' ?>"><span><?= $done?'<i data-lucide="check"></i>':($index+1) ?></span><small><?= htmlspecialchars($stage,ENT_QUOTES,'UTF-8') ?></small></div><?php endforeach; ?></div><p><i data-lucide="shield-check"></i> Chaque action est horodatée et enregistrée à votre nom.</p></section>
 <section class="mobile-card destination-card">
-    <small>CLIENT ET PROCHAINE DESTINATION</small>
+    <small><?= $hasNextDestination?'CLIENT ET PROCHAINE DESTINATION':'CLIENT ET DERNIÈRE DESTINATION' ?></small>
     <h2><?= htmlspecialchars($mission['company_name'], ENT_QUOTES, 'UTF-8') ?></h2>
-    <p><i data-lucide="map-pin"></i><span><strong><?= htmlspecialchars($mission['site_name'], ENT_QUOTES, 'UTF-8') ?></strong><?= htmlspecialchars($mission['site_address'].', '.$mission['site_city'], ENT_QUOTES, 'UTF-8') ?></span></p>
-    <a class="route-button" href="<?= htmlspecialchars($maps, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener"><i data-lucide="navigation"></i> Ouvrir l’itinéraire</a>
+    <p><i data-lucide="map-pin"></i><span><strong><?= htmlspecialchars((string)$mission['site_name'], ENT_QUOTES, 'UTF-8') ?></strong><?= htmlspecialchars(trim($mission['site_address'].', '.$mission['site_city'],', '), ENT_QUOTES, 'UTF-8') ?></span></p>
+    <?php if($hasNextDestination): ?><a class="route-button" href="<?= htmlspecialchars($maps, ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener"><i data-lucide="navigation"></i> Ouvrir l’itinéraire</a><?php endif; ?>
 </section>
 <section class="mobile-card"><small>ITINÉRAIRE · <?= count($mission['destinations']) ?> DESTINATION(S)</small><ol class="delivery-timeline"><?php foreach($mission['destinations'] as $destination): ?><li><span><?= (int)$destination['stop_order'] ?></span><div><strong><?= htmlspecialchars($destination['label'],ENT_QUOTES,'UTF-8') ?></strong><p><?= htmlspecialchars($destination['address_line'].($destination['city']?', '.$destination['city']:''),ENT_QUOTES,'UTF-8') ?></p><small><?= htmlspecialchars($destination['status'],ENT_QUOTES,'UTF-8') ?></small></div></li><?php endforeach; ?></ol></section>
 <section class="mobile-card">
     <small>CONTACT SUR PLACE</small>
     <?php if ($mission['contact_name']): ?>
-        <div class="mobile-contact"><span><i data-lucide="user-round"></i></span><div><strong><?= htmlspecialchars($mission['contact_name'], ENT_QUOTES, 'UTF-8') ?></strong><small><?= htmlspecialchars($mission['contact_phone'] ?: $mission['contact_email'], ENT_QUOTES, 'UTF-8') ?></small></div><?php if ($mission['contact_phone']): ?><a href="tel:<?= htmlspecialchars($mission['contact_phone'], ENT_QUOTES, 'UTF-8') ?>"><i data-lucide="phone"></i></a><?php endif; ?></div>
+        <div class="mobile-contact"><span><i data-lucide="user-round"></i></span><div><strong><?= htmlspecialchars($mission['contact_name'], ENT_QUOTES, 'UTF-8') ?></strong><small><?= htmlspecialchars((string)($mission['contact_phone'] ?: $mission['contact_email']), ENT_QUOTES, 'UTF-8') ?></small></div><?php if ($mission['contact_phone']): ?><a href="tel:<?= htmlspecialchars($mission['contact_phone'], ENT_QUOTES, 'UTF-8') ?>"><i data-lucide="phone"></i></a><?php endif; ?></div>
     <?php else: ?><p class="muted">Aucun contact renseigné.</p><?php endif; ?>
 </section>
 <section class="mobile-card <?= $mission['status']==='Déchargement'?'unloading-card':'' ?>">

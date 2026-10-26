@@ -10,14 +10,14 @@ use PDO;
 use RuntimeException;
 use Throwable;
 
-/** One transaction per driver intent, including the generated delivery document. */
+/** One transaction per driver intent. PDFs are generated independently at download. */
 final class MobileMission
 {
     private const START_STAGES=['Brouillon','Affectée','À préparer','Prête','Chargement','Chargée','Partie','En transit'];
 
     private static function lockOwned(PDO $pdo,int $id): array
     {
-        $s=$pdo->prepare('SELECT d.*,dr.user_id FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id WHERE d.id=:id FOR UPDATE');
+        $s=$pdo->prepare('SELECT d.*,dr.user_id FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id AND dr.is_active=1 WHERE d.id=:id FOR UPDATE');
         $s->execute(['id'=>$id]);$mission=$s->fetch();
         if(!$mission || (int)$mission['user_id']!==(int)Auth::id()){throw new RuntimeException('Mission introuvable ou non autorisée.');}
         return $mission;
@@ -25,7 +25,7 @@ final class MobileMission
 
     public static function start(int $id,array $position): void
     {
-        $pdo=Database::connection();$pdo->beginTransaction();
+        $pdo=Database::connection();$ownsTransaction=!$pdo->inTransaction();if($ownsTransaction){$pdo->beginTransaction();}
         try {
             $mission=self::lockOwned($pdo,$id);
             if(!in_array($mission['status'],self::START_STAGES,true)){throw new RuntimeException('Cette mission ne peut pas être commencée.');}
@@ -39,20 +39,20 @@ final class MobileMission
             }
             // GPS validation or persistence failure rolls back ALL automatic transitions.
             GpsTracking::recordBatch($id,[$position],'native-android');
-            $pdo->commit();
-        } catch(Throwable $e) {if($pdo->inTransaction()){$pdo->rollBack();}throw $e;}
+            if($ownsTransaction){$pdo->commit();}
+        } catch(Throwable $e) {if($ownsTransaction&&$pdo->inTransaction()){$pdo->rollBack();}throw $e;}
     }
 
     public static function deliver(int $id,int $destinationId,array $data,array $photo, bool $declaration = false): array
     {
         if($destinationId<=0){throw new RuntimeException('Choisissez la prochaine destination.');}
-        $pdo=Database::connection();$pdo->beginTransaction();
+        $pdo=Database::connection();$ownsTransaction=!$pdo->inTransaction();if($ownsTransaction){$pdo->beginTransaction();}
         try {
             $mission=self::lockOwned($pdo,$id);
             // A retry targets the same explicit destination, never the next one.
             $existing=$pdo->prepare('SELECT id FROM delivery_pods WHERE delivery_id=:delivery AND destination_id=:destination');
             $existing->execute(['delivery'=>$id,'destination'=>$destinationId]);$podId=(int)$existing->fetchColumn();
-            if($podId){self::ensureDocument($pdo,$id,$destinationId,$podId);$pdo->commit();return ['pod_id'=>$podId,'already_delivered'=>true];}
+            if($podId){if($ownsTransaction){$pdo->commit();}return ['pod_id'=>$podId,'already_delivered'=>true];}
             if(!in_array($mission['status'],['En transit','Arrivée','Déchargement'],true)){throw new RuntimeException('Commencez la mission ou faites résoudre son incident avant de livrer.');}
             $next=$pdo->prepare('SELECT id FROM delivery_destinations WHERE delivery_id=:id AND status NOT IN ("Livrée","Annulée") ORDER BY stop_order,id LIMIT 1 FOR UPDATE');
             $next->execute(['id'=>$id]);
@@ -68,10 +68,9 @@ final class MobileMission
             // Preserve any quantities or anomalies already recorded through the web interface.
             $pdo->prepare('UPDATE delivery_goods SET delivered_quantity=quantity,delivery_condition="Conforme",driver_note="Validation automatique : livraison complète confirmée dans l’application.",checked_at=NOW(),checked_by=:user WHERE delivery_id=:delivery AND destination_id=:destination AND checked_at IS NULL')->execute(['user'=>Auth::id(),'delivery'=>$id,'destination'=>$destinationId]);
             $podId=DeliveryPod::createOwned($id,$destinationId,$data,$photo,$declaration);
-            self::ensureDocument($pdo,$id,$destinationId,$podId);
-            $pdo->commit();
+            if($ownsTransaction){$pdo->commit();}
             return ['pod_id'=>$podId,'already_delivered'=>false];
-        } catch(Throwable $e) {if($pdo->inTransaction()){$pdo->rollBack();}throw $e;}
+        } catch(Throwable $e) {if($ownsTransaction&&$pdo->inTransaction()){$pdo->rollBack();}throw $e;}
     }
 
     private static function ensureDocument(PDO $pdo,int $deliveryId,int $destinationId,int $podId): void
@@ -82,8 +81,16 @@ final class MobileMission
         if(!$pod){throw new RuntimeException('Impossible de préparer le bon de livraison.');}
         $pdf=PodPdf::render($pod);
         if(strncmp($pdf,'%PDF-',5)!==0){throw new RuntimeException('Le bon de livraison n’a pas pu être généré.');}
-        $insert=$pdo->prepare('INSERT INTO delivery_pod_documents (pod_id,pdf_data) VALUES (:id,:pdf)');
+        $insert=$pdo->prepare('INSERT IGNORE INTO delivery_pod_documents (pod_id,pdf_data) VALUES (:id,:pdf)');
         $insert->bindValue(':id',$podId,PDO::PARAM_INT);$insert->bindValue(':pdf',$pdf,PDO::PARAM_LOB);$insert->execute();
+    }
+
+    public static function documentForDestination(int $deliveryId,int $destinationId,int $podId): string
+    {
+        self::ensureDocument(Database::connection(),$deliveryId,$destinationId,$podId);
+        $pdf=self::document($podId);
+        if($pdf===null){throw new RuntimeException('Le bon de livraison est indisponible.');}
+        return $pdf;
     }
 
     public static function document(int $podId): ?string
