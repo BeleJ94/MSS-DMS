@@ -6,7 +6,7 @@ $base=rtrim((string)Env::get('APP_URL',''),'/');
 ?>
 <link rel="stylesheet" href="<?= $escape($base) ?>/assets/css/mail-settings.css?v=20261023-4">
 <div class="page-heading"><div><span class="eyebrow">Administration</span><h1>Configuration e-mail</h1><p>Configurez l’expéditeur des notifications client et vérifiez l’envoi.</p></div></div>
-<nav class="mail-tabs" aria-label="Configuration e-mail"><a class="button button-primary" href="<?= $escape($base) ?>/settings/mail" aria-current="page">Configuration SMTP</a><a class="button button-secondary" href="<?= $escape($base) ?>/settings/mail/notifications">Tests des notifications de livraison</a></nav>
+<nav class="mail-tabs" aria-label="Configuration e-mail"><a class="button button-primary" href="<?= $escape($base) ?>/settings/mail" aria-current="page">Configuration SMTP</a><a class="button button-secondary" href="<?= $escape($base) ?>/settings/mail/notifications">Tests des notifications de livraison</a><a class="button button-secondary" href="<?= $escape($base) ?>/settings/mail/history">Suivi des e-mails</a></nav>
 <?php if($success): ?><div class="mail-feedback mail-success" role="status"><?= $escape($success) ?></div><?php endif; ?>
 <?php if($error): ?><div class="mail-feedback mail-error" role="alert"><?= $escape($error) ?></div><?php endif; ?>
 <form method="post" action="<?= $escape($base) ?>/settings/mail" class="mail-settings" data-no-confirm>

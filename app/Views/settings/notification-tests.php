@@ -6,7 +6,7 @@ $base=rtrim((string)Env::get('APP_URL',''),'/');
 ?>
 <link rel="stylesheet" href="<?= $escape($base) ?>/assets/css/mail-settings.css?v=20261023-4">
 <div class="page-heading"><div><span class="eyebrow">Administration · Configuration e-mail</span><h1>Tests des notifications de livraison</h1><p>Prévisualisez et testez les messages à partir d’une livraison existante.</p></div></div>
-<nav class="mail-tabs" aria-label="Configuration e-mail"><a class="button button-secondary" href="<?= $escape($base) ?>/settings/mail">Configuration SMTP</a><a class="button button-primary" href="<?= $escape($base) ?>/settings/mail/notifications" aria-current="page">Tests des notifications de livraison</a></nav>
+<nav class="mail-tabs" aria-label="Configuration e-mail"><a class="button button-secondary" href="<?= $escape($base) ?>/settings/mail">Configuration SMTP</a><a class="button button-primary" href="<?= $escape($base) ?>/settings/mail/notifications" aria-current="page">Tests des notifications de livraison</a><a class="button button-secondary" href="<?= $escape($base) ?>/settings/mail/history">Suivi des e-mails</a></nav>
 <div class="mail-feedback <?= $driver==='log'?'mail-success':'' ?>">Configuration enregistrée : <strong><?= $driver==='log'?'Journal — simulation sans envoi':'SMTP — envoi d’un véritable e-mail' ?></strong>. Les messages portent la mention TEST. Les statuts et les notifications automatiques de la livraison restent inchangés.</div>
 <form method="post" action="<?= $escape($base) ?>/settings/mail/notifications" class="notification-test-form mail-settings" data-no-confirm data-source="<?= $escape($base) ?>/settings/mail/notifications/data">
 <?= Csrf::field() ?>

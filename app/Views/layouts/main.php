@@ -60,7 +60,7 @@ $errorMessage = Session::pull('error');
             <?php if (Auth::can('incidents.view')): ?><a class="nav-item <?= ($page ?? '') === 'incidents' ? 'active' : '' ?>" href="<?= $baseUrl ?>/incidents"><i data-lucide="triangle-alert"></i><span>Incidents</span></a><?php endif; ?>
             <?php if (Auth::can('reports.view')): ?><a class="nav-item <?= ($page ?? '') === 'reports' ? 'active' : '' ?>" href="<?= $baseUrl ?>/reports"><i data-lucide="chart-no-axes-combined"></i><span>Rapports</span></a><?php endif; ?>
             <?php if (Auth::can('users.manage')): ?><a class="nav-item <?= ($page ?? '') === 'users' ? 'active' : '' ?>" href="<?= $baseUrl ?>/users"><i data-lucide="settings"></i><span>Administration</span></a><?php endif; ?>
-            <?php if (Auth::hasRole('administrateur')): ?><a class="nav-item <?= in_array($page ?? '', ['mail-settings','notification-tests'], true) ? 'active' : '' ?>" href="<?= $baseUrl ?>/settings/mail"><i data-lucide="mail"></i><span>Configuration e-mail</span></a><?php endif; ?>
+            <?php if (Auth::hasRole('administrateur')): ?><a class="nav-item <?= in_array($page ?? '', ['mail-settings','notification-tests'], true) ? 'active' : '' ?>" href="<?= $baseUrl ?>/settings/mail"><i data-lucide="mail"></i><span>Configuration e-mail</span></a><a class="nav-item <?= ($page ?? '')==='mail-history'?'active':'' ?>" href="<?= $baseUrl ?>/settings/mail/history"><i data-lucide="mails"></i><span>Suivi des e-mails</span></a><?php endif; ?>
         </nav>
         <div class="sidebar-foot"><span class="status-dot"></span><span>Système opérationnel</span><strong>v1.0</strong></div>
     </aside>

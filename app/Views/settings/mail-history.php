@@ -1,0 +1,42 @@
+<?php
+use App\Core\Env;
+use App\Models\ClientNotification;
+use App\Models\MailHistory;
+$h=static function($v):string{return htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');};
+$base=rtrim((string)Env::get('APP_URL',''),'/');$url=$base.'/settings/mail/history';$events=$filters['kind']==='events';
+$link=static function(array $overrides=[])use($url,$filters):string{return $url.'?'.http_build_query(array_merge($filters,$overrides));};
+$date=static function($v):string{return $v?date('d/m/Y H:i:s',strtotime($v)):'—';};
+$badge=static function(string $status)use($h):string{return '<span class="mh-status mh-'. $h($status).'">'.$h(MailHistory::STATUSES[$status]??$status).'</span>';};
+?>
+<link rel="stylesheet" href="<?= $h($base) ?>/assets/css/mail-settings.css?v=20261023-4">
+<link rel="stylesheet" href="<?= $h($base) ?>/assets/css/mail-history.css?v=20261028-1">
+<div class="page-heading"><div><span class="eyebrow">Administration · Messagerie</span><h1>Suivi des e-mails</h1><p>Notifications automatiques de livraison : destinataires, traitement et erreurs.</p></div><a class="button button-secondary" href="<?= $h($detail?$url:$link()) ?>"><i data-lucide="<?= $detail?'arrow-left':'refresh-cw' ?>"></i><?= $detail?'Retour au suivi':'Actualiser' ?></a></div>
+<nav class="mail-tabs" aria-label="Messagerie"><a class="button button-secondary" href="<?= $h($base) ?>/settings/mail">Configuration SMTP</a><a class="button button-secondary" href="<?= $h($base) ?>/settings/mail/notifications">Tests des notifications</a><a class="button button-primary" href="<?= $h($url) ?>" aria-current="page">Suivi des e-mails</a></nav>
+<p class="mh-notice">« Envoyé » correspond au traitement enregistré par l’application, pas à une confirmation de lecture ou de réception en boîte de réception. Le mode Journal simule les envois. Les tests manuels SMTP ne figurent pas dans cette liste.</p>
+<?php if($error): ?><div class="mail-feedback mail-error" role="alert"><?= $h($error) ?></div><?php endif; ?>
+<?php if($detail): $n=$detail; ?>
+<article class="panel mh-detail"><div class="panel-head"><div><span class="eyebrow"><?= $events?'Événement déclencheur':'Notification e-mail' ?> #<?= (int)$n['id'] ?></span><h2><?= $h(ClientNotification::EVENTS[$n['event']]??$n['event']) ?> · <?= $h($n['reference']) ?></h2></div><?= $badge($n['status']) ?></div>
+<dl class="mh-facts">
+<div><dt>Client</dt><dd><?= $h($n['company_name']) ?></dd></div><div><dt>Livraison</dt><dd><a href="<?= $h($base) ?>/deliveries/<?= (int)$n['delivery_id'] ?>"><?= $h($n['reference']) ?></a></dd></div>
+<div><dt>Destination</dt><dd><?= $h($n['destination_label']?:'Toute la tournée') ?></dd></div>
+<?php if(!$events): ?><div><dt>Destinataire</dt><dd><?= $h($n['recipient_name']) ?> &lt;<?= $h($n['recipient_address']) ?>&gt;</dd></div><?php endif; ?>
+<div><dt><?= $events?'Événement enregistré':'Mis en file' ?></dt><dd><?= $h($date($n[$events?'occurred_at':'created_at'])) ?></dd></div><div><dt><?= $events?'Préparation terminée':'Envoi enregistré' ?></dt><dd><?= $h($date($n[$events?'processed_at':'sent_at'])) ?></dd></div>
+<div><dt>Tentatives <?= $events?'de préparation':'d’envoi' ?></dt><dd><?= (int)$n['attempts'] ?> / 5</dd></div><div><dt>Prochaine tentative au plus tôt</dt><dd><?= $n['status']==='pending'?$h($date($n['available_at'])):'—' ?></dd></div></dl>
+<?php if($n['last_error']): ?><section class="mh-error"><h3>Dernière erreur</h3><pre><?= $h($n['last_error']) ?></pre></section><?php endif; ?>
+<?php if(!$events): ?><h3>Objet</h3><p><?= $h($n['subject']) ?></p><h3>Message préparé</h3><pre class="mh-body"><?= $h($n['body']) ?></pre><p class="mh-notice">Le contenu ci-dessus est celui préparé dans la file. La mention de pièce jointe peut être adaptée lors de l’envoi si le PDF est absent.</p><?php else: ?><p class="mh-notice">Un événement « Préparé » a été examiné par le worker. Les mails correspondants figurent dans l’onglet E-mails ; aucun message n’est créé si aucun destinataire n’est abonné.</p><a class="button button-secondary" href="<?= $h($url.'?'.http_build_query(['q'=>$n['reference']])) ?>">Voir les e-mails de cette livraison</a><?php endif; ?>
+</article>
+<?php else: ?>
+<nav class="mh-kinds" aria-label="Files de notification"><a href="<?= $h($link(['kind'=>'mails','status'=>'','p'=>1])) ?>" <?= !$events?'aria-current="page"':'' ?>>E-mails</a><a href="<?= $h($link(['kind'=>'events','status'=>'','p'=>1])) ?>" <?= $events?'aria-current="page"':'' ?>>Événements déclencheurs</a></nav>
+<form class="panel mh-filters" method="get" action="<?= $h($url) ?>"><input type="hidden" name="kind" value="<?= $h($filters['kind']) ?>">
+<label class="field"><span>Rechercher</span><input type="search" name="q" maxlength="100" value="<?= $h($filters['q']) ?>" placeholder="Référence, client<?= !$events?', e-mail ou objet':'' ?>"></label>
+<label class="field"><span>Statut</span><select name="status"><option value="">Tous les statuts</option><?php foreach($events?['pending','processed','failed']:['pending','sent','failed'] as $state): ?><option value="<?= $h($state) ?>" <?= $filters['status']===$state?'selected':'' ?>><?= $h(MailHistory::STATUSES[$state]) ?></option><?php endforeach; ?></select></label>
+<label class="field"><span>Événement</span><select name="event"><option value="">Tous les événements</option><?php foreach(ClientNotification::EVENTS as $key=>$label): ?><option value="<?= $h($key) ?>" <?= $filters['event']===$key?'selected':'' ?>><?= $h($label) ?></option><?php endforeach; ?></select></label>
+<label class="field"><span>Du (mise en file)</span><input type="date" name="from" value="<?= $h($filters['from']) ?>"></label><label class="field"><span>Au (inclus)</span><input type="date" name="to" value="<?= $h($filters['to']) ?>"></label>
+<div class="mh-filter-actions"><button class="button button-primary" type="submit">Filtrer</button><a class="button button-secondary" href="<?= $h($url.'?kind='.$filters['kind']) ?>">Réinitialiser</a></div></form>
+<div class="mh-counters" aria-label="Résultats filtrés"><article><span>Total filtré</span><strong><?= (int)$total ?></strong></article><?php foreach($counts as $state=>$count): ?><article><span><?= $h(MailHistory::STATUSES[$state]??$state) ?></span><strong><?= (int)$count ?></strong></article><?php endforeach; ?></div>
+<section class="panel mh-results"><div class="panel-head"><div><h2><?= $events?'Événements déclencheurs':'Historique des e-mails' ?></h2><p><?= $events?'Détection en base et préparation des notifications.':'Un enregistrement par destinataire et par événement.' ?></p></div></div>
+<div class="mh-table-wrap" tabindex="0" role="region" aria-label="Historique des notifications"><table class="mh-table"><thead><tr><th>Date</th><th>Livraison / client</th><th>Événement / destination</th><?php if(!$events): ?><th>Destinataire</th><?php endif; ?><th>Statut</th><th>Tentatives</th><th>Suivi</th><th>Détail</th></tr></thead><tbody>
+<?php if(!$rows): ?><tr><td colspan="<?= $events?7:8 ?>" class="mh-empty">Aucun résultat pour ces filtres.</td></tr><?php endif; ?>
+<?php foreach($rows as $n): ?><tr><td><?= $h($date($n['created_at'])) ?></td><td><a href="<?= $h($base) ?>/deliveries/<?= (int)$n['delivery_id'] ?>"><?= $h($n['reference']) ?></a><small><?= $h($n['company_name']) ?></small></td><td><?= $h(ClientNotification::EVENTS[$n['event']]??$n['event']) ?><small><?= $h($n['destination_label']?:'Toute la tournée') ?></small></td><?php if(!$events): ?><td><?= $h($n['recipient_address']) ?></td><?php endif; ?><td><?= $badge($n['status']) ?></td><td><?= (int)$n['attempts'] ?> / 5</td><td><?php if($n['last_error']): ?><span class="mh-error-text"><?= $h($n['last_error']) ?></span><?php elseif($n['finished_at']): ?><?= $h($date($n['finished_at'])) ?><?php elseif($n['status']==='pending'): ?>À partir du <?= $h($date($n['available_at'])) ?><?php endif; ?></td><td><a class="button button-secondary" aria-label="Détails de la notification <?= (int)$n['id'] ?>" href="<?= $h($url.'/'.(int)$n['id'].'?kind='.$filters['kind']) ?>">Détails</a></td></tr><?php endforeach; ?>
+</tbody></table></div><nav class="mh-pagination" aria-label="Pagination"><?php if($currentPage>1): ?><a class="button button-secondary" href="<?= $h($link(['p'=>$currentPage-1])) ?>">Précédent</a><?php endif; ?><span>Page <?= (int)$currentPage ?> / <?= (int)$pages ?> · <?= (int)$total ?> résultat(s)</span><?php if($currentPage<$pages): ?><a class="button button-secondary" href="<?= $h($link(['p'=>$currentPage+1])) ?>">Suivant</a><?php endif; ?></nav></section>
+<?php endif; ?>
