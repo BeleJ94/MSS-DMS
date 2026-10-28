@@ -1,0 +1,37 @@
+name: 🚀 Déploiement automatique MSS-DMS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to MSS VPS
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST_MSS }}
+          username: ${{ secrets.VPS_USER_MSS }}
+          key: ${{ secrets.VPS_SSH_KEY_MSS }}
+
+          script: |
+            set -e
+
+            cd /var/www/vhosts/belej-erp.com/mss.belej-erp.com
+
+            echo "=== Fetching GitHub ==="
+            git fetch origin main
+
+            echo "=== Deploying ==="
+            git reset --hard origin/main
+
+            echo "=== Fixing permissions ==="
+            chown -R www-data:www-data /var/www/vhosts/belej-erp.com/mss.belej-erp.com
+
+            echo "=== Current version ==="
+            git log -1 --oneline
+
+            echo "=== Deployment completed ==="
